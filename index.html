@@ -729,12 +729,49 @@ const midiName=(m,names=AUTO)=>names[((m%12)+12)%12]+(Math.floor(m/12)-1);
 
 /* ---------- audio ---------- */
 let AC=null,master=null;
-function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();const comp=AC.createDynamicsCompressor();master=AC.createGain();master.gain.value=.8;master.connect(comp).connect(AC.destination);}if(AC.state==='suspended')AC.resume();return AC;}
-function pluck(f,delay=0,dur=1.8,vol=.22,po={}){const c=ac(),t=c.currentTime+delay;const o1=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain(),lp=c.createBiquadFilter();
- o1.type='sawtooth';o1.frequency.setValueAtTime(f,t);o2.type='triangle';o2.frequency.setValueAtTime(f*2,t);if(po.bend){o1.frequency.linearRampToValueAtTime(po.bend,t+.18);o2.frequency.linearRampToValueAtTime(po.bend*2,t+.18);}g2.gain.value=.35;lp.type='lowpass';lp.Q.value=1.2;
- lp.frequency.setValueAtTime(Math.min(9000,f*10),t);lp.frequency.exponentialRampToValueAtTime(Math.max(180,f*1.6),t+dur*.7);
- g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
- o1.connect(lp);o2.connect(g2).connect(lp);lp.connect(g).connect(po.dest||master);o1.start(t);o2.start(t);o1.stop(t+dur+.05);o2.stop(t+dur+.05);}
+function makeIR(c,sec){const len=Math.floor(c.sampleRate*sec),b=c.createBuffer(2,len,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++){const k=i/len;d[i]=(Math.random()*2-1)*Math.pow(1-k,3.2)*(i<c.sampleRate*.012?i/(c.sampleRate*.012):1);}}return b;}
+function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();master.gain.value=.9;
+  const lowB=AC.createBiquadFilter();lowB.type='peaking';lowB.frequency.value=110;lowB.Q.value=.9;lowB.gain.value=3;
+  const mid=AC.createBiquadFilter();mid.type='peaking';mid.frequency.value=480;mid.Q.value=1;mid.gain.value=-2;
+  const pres=AC.createBiquadFilter();pres.type='peaking';pres.frequency.value=2600;pres.Q.value=.8;pres.gain.value=2;
+  const air=AC.createBiquadFilter();air.type='highshelf';air.frequency.value=7500;air.gain.value=-5;
+  const comp=AC.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.004;comp.release.value=.2;
+  master.connect(lowB).connect(mid).connect(pres).connect(air);air.connect(comp);
+  try{const rev=AC.createConvolver();rev.buffer=makeIR(AC,1.6);const wet=AC.createGain();wet.gain.value=.16;air.connect(rev).connect(wet).connect(comp);}catch(e){}
+  comp.connect(AC.destination);}
+ if(AC.state==='suspended')AC.resume();return AC;}
+// Karplus-Strong plucked string, rendered once per pitch and cached
+const KSC=new Map();
+function ksBuffer(f,dur,soft){const c=ac(),sr=c.sampleRate;const bright=f>500?.35:.5;const N=Math.max(2,Math.floor(sr/f-(1-bright)));const fks=sr/(N+(1-bright));
+ const d=Math.min(4.5,Math.max(.35,dur));const key=N+'|'+Math.round(d*4)+'|'+(soft?1:0);
+ if(KSC.has(key))return KSC.get(key);if(KSC.size>400)KSC.clear();
+ const len=Math.floor(sr*d),y=new Float32Array(len);
+ // excitation: noise, pick-position comb, softened for legato
+ const ex=new Float32Array(N);for(let i=0;i<N;i++)ex[i]=Math.random()*2-1;
+ const pp=Math.max(1,Math.round(N*.14));for(let i=N-1;i>=pp;i--)ex[i]-=ex[i-pp];
+ for(let p=0;p<(soft?3:1);p++){for(let i=1;i<N;i++)ex[i]=.5*(ex[i]+ex[i-1]);}
+ let mx=0;for(let i=0;i<N;i++)mx=Math.max(mx,Math.abs(ex[i]));for(let i=0;i<N;i++)y[i]=ex[i]/(mx||1);
+ const T60=Math.min(5,Math.max(.9,4.2*Math.sqrt(110/fks)));const g=Math.pow(.001,1/(fks*T60));
+ for(let n=N;n<len;n++){const a=y[n-N],b=n-N-1>=0?y[n-N-1]:0;y[n]=g*(bright*a+(1-bright)*b);}
+ const buf=c.createBuffer(1,len,sr);buf.copyToChannel?buf.copyToChannel(y,0):buf.getChannelData(0).set(y);
+ const r={buf,fks};KSC.set(key,r);return r;}
+// one string sound. o: dest, bend, release, from, slideIn, slideOut, vib, legato, fretFrom, fretTo
+function ksPlay(f,t,dur,vol,o={}){const c=ac();const{buf,fks}=ksBuffer(f,dur+.1,o.legato);
+ const src=c.createBufferSource();src.buffer=buf;const g=c.createGain();const base=f/fks;const pr=src.playbackRate;
+ const step=(fromF,toF,t0,total)=>{const semis=Math.round(12*Math.log2(toF/fromF));const n=Math.abs(semis);if(!n){pr.setValueAtTime(base*toF/f,t0);return t0;}
+  const st=Math.min(.055,total/n);for(let k=0;k<=n;k++)pr.setValueAtTime(base*fromF/f*Math.pow(2,Math.sign(semis)*k/12),t0+k*st);return t0+n*st;};
+ const f0=o.from||(o.slideIn?f*Math.pow(2,-o.slideIn*3/12):f);
+ pr.setValueAtTime(base*f0/f,t);
+ let tEnd=t;if(f0!==f)tEnd=step(f0,f,t,Math.min(.16,dur*.45));
+ if(o.bend){const b0=Math.max(tEnd,t+.04);pr.setValueAtTime(base,b0);pr.linearRampToValueAtTime(base*o.bend/f,b0+.16);
+  if(o.release){const r0=Math.max(b0+.24,t+dur*.45);pr.setValueAtTime(base*o.bend/f,r0);pr.linearRampToValueAtTime(base*o.release/f,r0+.15);}}
+ if(o.slideOut){const s0=t+Math.max(.15,dur*.5);const cur=o.release||o.bend||f;step(cur,cur*Math.pow(2,o.slideOut*5/12),s0,.28);g.gain.setTargetAtTime(.0001,s0+.12,.08);}
+ if(o.vib){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=5.5;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(base*.017,t+.3);l.connect(lg).connect(pr);l.start(t);l.stop(t+dur+.2);}
+ const pk=o.legato?vol*.62:vol;g.gain.setValueAtTime(pk,t);g.gain.setTargetAtTime(.0001,t+dur*.92,.06);
+ src.connect(g).connect(o.dest||master);src.start(t);src.stop(t+dur+.4);
+ return{stop(at){try{g.gain.cancelScheduledValues(at);g.gain.setTargetAtTime(.0001,at,.012);src.stop(at+.1);}catch(e){}}};}
+function pluck(f,delay=0,dur=1.8,vol=.22,po={}){const c=ac();return ksPlay(f,c.currentTime+delay,dur,vol*1.15,{dest:po.dest,bend:po.bend||0});}
 function strum(midis,delay=0,gap=.028,dur=2,vol=.16){midis.forEach((m,i)=>pluck(freq(m),delay+i*gap,dur,vol));}
 function tone(f,dur){const c=ac(),t=c.currentTime;const o=c.createOscillator(),o2=c.createOscillator(),o3=c.createOscillator(),g=c.createGain(),g2=c.createGain(),g3=c.createGain();
  o.type='triangle';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*2;o3.type='sine';o3.frequency.value=f*3;g2.gain.value=.35;g3.gain.value=.12;
@@ -1721,21 +1758,7 @@ function measureSVG(ms,tun,num,showLab){
 let NOISE=null;
 function deadNote(t,dest){const c=ac();if(!NOISE){NOISE=c.createBuffer(1,c.sampleRate*.06,c.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);}
  const src=c.createBufferSource();src.buffer=NOISE;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=1.2;const g=c.createGain();g.gain.value=.5;src.connect(bp).connect(g).connect(dest);src.start(t);}
-function tabNote(f,t,dur,vol,o){const c=ac();const o1=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain(),lp=c.createBiquadFilter();
- o1.type='sawtooth';o2.type='triangle';g2.gain.value=.35;lp.type='lowpass';lp.Q.value=1.1;
- const f0=o.from||(o.slideIn?f*Math.pow(2,-o.slideIn*3/12):f);
- [[o1,1],[o2,2]].forEach(([osc,k])=>{const fq=osc.frequency;fq.setValueAtTime(f0*k,t);
-  if(f0!==f)fq.linearRampToValueAtTime(f*k,t+Math.min(.14,dur*.5));
-  if(o.bend){fq.setValueAtTime(f*k,t+.03);fq.linearRampToValueAtTime(o.bend*k,t+.18);
-   if(o.release){fq.setValueAtTime(o.bend*k,t+Math.max(.25,dur*.45));fq.linearRampToValueAtTime(o.release*k,t+Math.max(.25,dur*.45)+.14);}}
-  if(o.slideOut){const s0=t+dur*.55;fq.setValueAtTime((o.bend||f)*k,s0);fq.exponentialRampToValueAtTime((o.bend||f)*k*Math.pow(2,o.slideOut*5/12),s0+dur*.35);}});
- if(o.vib){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=5.6;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(f*.018,t+.25);l.connect(lg);lg.connect(o1.frequency);const lg2=c.createGain();lg2.gain.value=2;lg.connect(lg2).connect(o2.frequency);l.start(t);l.stop(t+dur+.1);}
- const soft=o.legato;const att=soft?.02:.005,pk=soft?vol*.75:vol;
- lp.frequency.setValueAtTime(Math.min(9000,f*(soft?5:10)),t);lp.frequency.exponentialRampToValueAtTime(Math.max(180,f*1.6),t+dur*.8);
- g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(pk,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
- o1.connect(lp);o2.connect(g2).connect(lp);lp.connect(g).connect(o.dest);o1.start(t);o2.start(t);o1.stop(t+dur+.05);o2.stop(t+dur+.05);
- return{stop(at){try{g.gain.cancelScheduledValues(at);g.gain.setTargetAtTime(.0001,at,.012);o1.stop(at+.08);o2.stop(at+.08);}catch(e){}}};
-}
+function tabNote(f,t,dur,vol,o){return ksPlay(f,t,dur,vol,o);}
 function tabChordMidis(name){const c=parseChord(name);if(!c)return[];const tun=TABDOC?TABDOC.tun:TU.std.n;
  const def=TABDOC&&TABDOC.defs[name]&&shapeFromStr(TABDOC.defs[name][0],tun.length);
  if(def)return def.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);
@@ -1870,7 +1893,7 @@ function renderTabs(){
  const curName=(TUNINGS.find(t=>t.n.join()===tun.join())||{}).name||tun.map(m=>pretty(midiName(m))).join(' ');
  const totalS=Math.round(tl.total*60/S.tbBpm);
  info.appendChild(el('div',{},`<h2>${esc(doc.title||(tabText?tabSrc:'Example song'))}</h2><p class="empty">Tuning: <b>${curName}</b>${tunNote} · ${secs.length} sections · ${barNo} bars of tab · about ${Math.floor(totalS/60)}:${String(totalS%60).padStart(2,'0')} at ${S.tbBpm} BPM</p>`));
- {const T=TABDOC.techs,L=[['slide','╱','Slide: one pick, the pitch glides to the next note'],['sin','╱','Slide in from below or above'],['h','H','Hammer-on: second note without picking'],['p','P','Pull-off: second note without picking'],['bend','↑','Bend: ½ = one fret, full = two frets'],['rel','r','Release the bend back down'],['vib','∿','Vibrato: shake the note'],['dead','×','Dead note: muted, percussive'],['trem','≡','Tremolo picking: fast repeated picks']].filter(x=>T[x[0]]);
+ {const T=TABDOC.techs,L=[['slide','╱','Slide: keep the finger pressed and slide along the string, fret by fret, to the next note (pick only the first)'],['sin','╱','Slide in from below or above'],['h','H','Hammer-on: second note without picking'],['p','P','Pull-off: second note without picking'],['bend','↑','Bend: ½ = one fret, full = two frets'],['rel','r','Release the bend back down'],['vib','∿','Vibrato: shake the note'],['dead','×','Dead note: muted, percussive'],['trem','≡','Tremolo picking: fast repeated picks']].filter(x=>T[x[0]]);
   if(L.length){info.appendChild(el('h3',{},'Techniques in this tab'));info.appendChild(el('div',{class:'tb-legend'},L.map(x=>`<span><b>${x[1]}</b>${x[2]} (${T[x[0]]})</span>`).join('')));}}
  if(used.length){info.appendChild(el('h3',{},'Chords in this song · tap to hear'));const g=el('div',{class:'grid-v'});
   used.forEach(name=>{const c=parseChord(name);if(!c)return;const defs=(doc.defs[name]||[]).map(x=>shapeFromStr(x,tun.length)).filter(Boolean);
