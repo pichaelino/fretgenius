@@ -111,6 +111,11 @@ select{padding-right:28px}
 
 .board-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 6px}
 .board-wrap svg{display:block;min-width:820px;width:100%;height:auto}
+#ex-board svg{min-width:1340px}
+svg .boxr{fill:var(--accent);fill-opacity:.07;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 4}
+svg .boxr.alt{stroke:var(--iv3);fill:var(--iv3)}
+svg .boxl{fill:var(--accent);font:700 11px var(--f-body)}
+svg .boxl.alt{fill:var(--iv3)}
 svg .wood{fill:var(--wood)} svg .fretl{stroke:var(--fret)} svg .nut{fill:var(--ink)}
 svg .str{stroke:var(--string)} svg .inl{fill:var(--inlay)}
 svg .dot{fill:var(--dot);cursor:pointer} svg .dot.root{fill:var(--accent)}
@@ -300,7 +305,7 @@ svg .mtog.muted text{fill:var(--bad)}
         <div class="row"><div class="roots" id="ex-roots"></div><button class="btn ghost sm" id="ex-enh" title="Switch sharp and flat names">♯ / ♭</button></div>
       </div>
       <div class="group"><span class="lbl">Type</span>
-        <div class="seg" id="ex-kind"><button data-k="scales">Scales</button><button data-k="modes">Modes</button><button data-k="chords">Chords</button><button data-k="triads">Triads</button></div>
+        <div class="seg" id="ex-kind"><button data-k="scales">Scales</button><button data-k="modes">Modes</button><button data-k="triads">Triads</button></div>
       </div>
       <div class="group"><label class="lbl" for="ex-item">Shape</label><select id="ex-item"></select></div>
       <div class="group"><span class="lbl">Dots show</span>
@@ -318,6 +323,7 @@ svg .mtog.muted text{fill:var(--bad)}
   </div>
   <div class="panel" style="gap:8px" id="ex-octpanel">
     <div class="octbar"><span class="lbl">Octave</span><div class="seg" id="ex-oct"></div></div>
+    <div class="octbar" id="ex-boxbar"><span class="lbl">Improvise</span><div class="seg" id="ex-box"></div><button class="btn ghost sm" id="ex-boxplay" hidden>▶ Play box</button></div>
     <p class="octinfo" id="ex-octinfo"></p>
   </div>
   <div class="panel" id="ex-tripanel" hidden></div>
@@ -615,10 +621,11 @@ const TUNINGS=[
 const TU=Object.fromEntries(TUNINGS.map(t=>[t.id,t]));
 
 /* ---------- state ---------- */
-const DEF={view:'explore',root:'A',kind:'scales',item:{scales:'minpent',modes:'dorian',chords:'m7',triads:'maj'},tset:'all',tinv:'all',thl:null,label:'notes',tuning:'std',a4:440,enh:'auto',song:'Am F C G',songIsSample:true,bpm:90,sev:false,circle:{i:0,minor:false},forced:null,oct:null,selMidi:null};
+const DEF={view:'explore',root:'A',kind:'scales',item:{scales:'minpent',modes:'dorian',chords:'m7',triads:'maj'},tset:'all',tinv:'all',thl:null,label:'notes',tuning:'std',a4:440,enh:'auto',song:'Am F C G',songIsSample:true,bpm:90,sev:false,circle:{i:0,minor:false},forced:null,oct:null,selMidi:null,box:null};
 let S;
 try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('fretwise')||'{}'));S.item=Object.assign({},DEF.item,S.item);}catch(e){S=structuredClone(DEF);}
 if(S.tsetV!==2){S.tset='all';S.tsetV=2;}
+if(S.kind==='chords')S.kind='scales';
 const save=()=>{try{localStorage.setItem('fretwise',JSON.stringify(S));}catch(e){}};
 const tuning=()=>(TU[S.tuning]||TU.std).n;
 const freq=m=>S.a4*Math.pow(2,(m-69)/12);
@@ -711,10 +718,32 @@ function diagramSVG(v,tun,rootPc){
 }
 
 /* ---------- fretboard ---------- */
+const EXF=23;
+function scaleBoxes(rootPc,it,tun){
+ const EXTRA={blues:['b5'],majblues:['b3'],bebop:['7']};
+ const extra=EXTRA[it.id]||[];const base=it.f.filter(l=>!extra.includes(l));
+ if(base.length>8||base.length<5)return[];
+ const nps=base.length<=6?2:3;const semis=[...new Set(base.map(l=>IV[l]))].sort((a,b)=>a-b);
+ const inBase=m=>semis.includes(((m-rootPc)%12+12)%12);
+ const exSemis=extra.map(l=>IV[l]);
+ const n=tun.length,boxes=[];let prev=-1;
+ for(let k=0;k<semis.length;k++){
+  let sf=((rootPc+semis[k]-tun[0])%12+12)%12;if(sf<prev)sf+=12;
+  const build=sf=>{let m=tun[0]+sf;const notes=[];for(let st=0;st<n;st++){for(let j=0;j<nps;j++){if(st>0||j>0){m++;while(!inBase(m))m++;}notes.push([st,m-tun[st],m]);}}return notes;};
+  let notes=build(sf);if(notes.some(x=>x[1]<0)){sf+=12;notes=build(sf);}
+  if(notes.some(x=>x[1]>EXF))break;
+  const frs=notes.map(x=>x[1]);const minF=Math.min(...frs),maxF=Math.max(...frs);
+  if(exSemis.length)for(let st=0;st<n;st++)for(let fr=minF;fr<=maxF;fr++){const m=tun[st]+fr;if(exSemis.includes(((m-rootPc)%12+12)%12))notes.push([st,fr,m]);}
+  notes.sort((a,b)=>a[2]-b[2]);
+  boxes.push({k,lbl:base[semis.indexOf(semis[k])]||base[k],keys:new Set(notes.map(x=>x[0]+','+x[1])),minF,maxF,ms:notes.map(x=>x[2])});
+  prev=sf;
+ }
+ return boxes;
+}
 function octOf(m,lab){let o=Math.floor(m/12)-1;const pc=m%12;if(lab&&lab[0]==='B'&&pc<=1)o--;if(lab&&lab[0]==='C'&&pc>=10)o++;return o;}
 function boardSVG(tun,marks,frets=15,opt={}){
  const n=tun.length,nutX=64,fw=56,sg=24,top=20;
- const W=nutX+frets*fw+14,boardH=sg*(n-1),H=top+boardH+38;
+ const W=nutX+frets*fw+14,boardH=sg*(n-1),H=top+boardH+(opt.boxes?52:38);
  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fretboard">`;
  s+=`<rect class="wood" x="${nutX}" y="${top-10}" width="${frets*fw}" height="${boardH+20}" rx="3"></rect>`;
  const cy=top+boardH/2;
@@ -726,11 +755,12 @@ function boardSVG(tun,marks,frets=15,opt={}){
   s+=`<line class="str" x1="${nutX-26}" x2="${nutX+frets*fw}" y1="${y}" y2="${y}" stroke-width="${w.toFixed(2)}"></line>`;
   s+=`<text class="sn" x="8" y="${y+4}">${pretty(AUTO[tun[st]%12])}</text>`;}
  const PX=f=>f===0?nutX-24:nutX+(f-.5)*fw,PY=st=>top+(n-1-st)*sg;
+ if(opt.boxes)opt.boxes.forEach((B,bi)=>{const x1=B.minF===0?nutX-38:nutX+(B.minF-1)*fw+3,x2=B.maxF===0?nutX-8:nutX+B.maxF*fw-3;s+=`<rect class="boxr${B.alt?' alt':''}" x="${x1}" y="${top-14}" width="${x2-x1}" height="${boardH+28}" rx="8"></rect>`;if(B.label)s+=`<text class="boxl${B.alt?' alt':''}" x="${(x1+x2)/2}" y="${top+boardH+44}" text-anchor="middle">${B.label}</text>`;});
  if(opt.lines)opt.lines.forEach(L=>{s+=`<polyline class="tline ${L.c||''}${L.hl?' hl':''}${L.dim?' dim':''}" points="${L.pts.map(([st,f])=>PX(f)+','+PY(st)).join(' ')}"></polyline>`;});
  for(let i=0;i<n;i++){const st=n-1-i,y=top+i*sg;
   for(let f=0;f<=frets;f++){const m=tun[st]+f,pc=m%12,mk=marks.get(pc);if(!mk)continue;if(opt.only&&!opt.only.has(st+','+f))continue;
    const x=f===0?nutX-24:nutX+(f-.5)*fw;
-   const inR=(!opt.range||(m>=opt.range[0]&&m<=opt.range[1]))&&!(opt.fade&&opt.fade.has(st+','+f));
+   const inR=(!opt.range||(m>=opt.range[0]&&m<=opt.range[1]))&&!(opt.fade&&opt.fade.has(st+','+f))&&!(opt.keep&&!opt.keep.has(st+','+f));
    const lab=opt.octNum&&inR&&S.label==='notes'?mk.lab+octOf(m,mk.lab):mk.lab;const r=lab.length>2?12:10.5;
    const cc=mk.root?' root':mk.cat&&mk.cat!=='c0'?' '+mk.cat:'';
    const same=opt.sel!==undefined&&opt.sel!==null&&m===opt.sel;
@@ -748,9 +778,9 @@ function exList(){return S.kind==='scales'?SCALES:S.kind==='modes'?MODES:S.kind=
 const INV_NAME={'1':'Root position','3':'1st inversion','b3':'1st inversion','2':'1st inversion','4':'1st inversion','5':'2nd inversion','b5':'2nd inversion','#5':'2nd inversion'};
 function triadShapes(rootPc,f,tun,k){
  const pcs=f.map(l=>(rootPc+IV[l])%12),out=[];
- for(let a=0;a<=15;a++){const m0=tun[k]+a;if(!pcs.includes(m0%12))continue;
-  for(let b=Math.max(0,a-4);b<=Math.min(15,a+4);b++){const m1=tun[k+1]+b;if(!pcs.includes(m1%12)||m1<=m0)continue;
-   for(let c=Math.max(0,a-4,b-4);c<=Math.min(15,a+4,b+4);c++){const m2=tun[k+2]+c;if(!pcs.includes(m2%12)||m2<=m1)continue;
+ for(let a=0;a<=EXF;a++){const m0=tun[k]+a;if(!pcs.includes(m0%12))continue;
+  for(let b=Math.max(0,a-4);b<=Math.min(EXF,a+4);b++){const m1=tun[k+1]+b;if(!pcs.includes(m1%12)||m1<=m0)continue;
+   for(let c=Math.max(0,a-4,b-4);c<=Math.min(EXF,a+4,b+4);c++){const m2=tun[k+2]+c;if(!pcs.includes(m2%12)||m2<=m1)continue;
     if(new Set([m0%12,m1%12,m2%12]).size!==3||m2-m0>=12)continue;
     const fr=[a,b,c];const used=fr.filter(x=>x>0);if(used.length&&Math.max(...used)-Math.min(...used)>4)continue;
     const bl=f.find(l=>(rootPc+IV[l])%12===m0%12);
@@ -788,12 +818,12 @@ function renderExplorer(){
  const marks=new Map();it.f.forEach((l,i)=>{const pc=(rootPc+IV[l])%12;if(!marks.has(pc))marks.set(pc,{lab:S.label==='notes'?notes[i]:pretty(l==='1'?'R':l),root:i===0,cat:ivCat(l)});});
  const tun=tuning();
  // octave spans root→root that touch the neck
- const lo=Math.min(...tun),hi=Math.max(...tun)+15;const spans=[];
+ const lo=Math.min(...tun),hi=Math.max(...tun)+EXF;const spans=[];
  for(let r=rootPc;r<=hi;r+=12)if(r>=lo)spans.push(r);
  if(S.oct!==null&&S.oct!==undefined&&!spans.includes(S.oct)){const prev=S.oct;S.oct=spans.reduce((a,b)=>Math.abs(b-prev)<Math.abs(a-prev)?b:a,spans[0]);}
  const ob=$('#ex-oct');ob.innerHTML='';
  const rn=notes[0];
- const mk=(label,val)=>{const b=el('button',{'aria-pressed':String((S.oct??null)===val)},label);b.onclick=()=>{S.oct=val;S.selMidi=null;save();renderExplorer();};ob.appendChild(b);};
+ const mk=(label,val)=>{const b=el('button',{'aria-pressed':String((S.oct??null)===val)},label);b.onclick=()=>{S.oct=val;if(val!==null)S.box=null;S.selMidi=null;save();renderExplorer();};ob.appendChild(b);};
  mk('All',null);spans.forEach(r=>mk(`${rn}${octOf(r,S.root)}–${rn}${octOf(r+12,S.root)}`,r));
  const range=S.oct!=null?[S.oct,S.oct+12]:null;
  const scaleMidis=new Set();if(range)for(let m=range[0];m<=range[1];m++)if(marks.has(m%12))scaleMidis.add(m);
@@ -810,7 +840,7 @@ function renderExplorer(){
   if(S.thl!=null){const h=tri[S.thl];const keep=new Set(h.fr.map((f,j)=>(h.k+j)+','+f));only.forEach(x=>{if(!keep.has(x))fade.add(x);});}
   const INVC={'Root position':'r0','1st inversion':'r1','2nd inversion':'r2'};
   const lines=tri.map((t,i)=>({pts:t.fr.map((f,j)=>[t.k+j,f]),hl:i===S.thl,dim:S.thl!=null&&i!==S.thl,c:INVC[t.inv]||''}));
-  $('#ex-board').innerHTML=boardSVG(tun,marks,15,{only,fade,lines,sel:S.selMidi});
+  $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{only,fade,lines,sel:S.selMidi});
   // controls above the board
   const segRow=(label,opts,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label));const sg=el('div',{class:'seg',style:'flex-wrap:wrap'});opts.forEach(([v,t])=>{const b=el('button',{'aria-pressed':String(cur===v)},t);b.onclick=()=>{set(v);S.thl=null;save();renderExplorer();};sg.appendChild(b);});g.appendChild(sg);return g;};
   const setName=k=>`${n-k-2}-${n-k-1}-${n-k}`;
@@ -820,11 +850,26 @@ function renderExplorer(){
   ctr.appendChild(segRow('Inversion',[['all','All'],['Root position','Root'],['1st inversion','1st'],['2nd inversion','2nd']],S.tinv,v=>S.tinv=v));
   tp.appendChild(ctr);
   tp.appendChild(el('div',{class:'ivlegend'},`<span><i class="ln r0"></i>Root position: root at the bottom</span><span><i class="ln r1"></i>1st inversion: 3rd at the bottom</span><span><i class="ln r2"></i>2nd inversion: 5th at the bottom</span><span>Strings are numbered from the thinnest (1 = high E).</span>`));
- } else $('#ex-board').innerHTML=boardSVG(tun,marks,15,{range,sel:S.selMidi,octNum:!!range||S.selMidi!=null});
+ } else {
+  const boxes=scaleBoxes(rootPc,it,tun);if(S.box!=null&&S.box!=='all'&&S.box>=boxes.length)S.box=null;
+  const bb=$('#ex-box');bb.innerHTML='';$('#ex-boxbar').hidden=!boxes.length;
+  const bt=(lab,val)=>{const b=el('button',{'aria-pressed':String((S.box??null)===val)},lab);b.onclick=()=>{S.box=val;if(val!==null)S.oct=null;S.selMidi=null;save();renderExplorer();};bb.appendChild(b);};
+  bt('Off',null);boxes.forEach((b,i)=>bt('Box '+(i+1),i));if(boxes.length)bt('All boxes','all');
+  $('#ex-boxplay').hidden=S.box==null||S.box==='all';
+  window.__boxes=boxes;
+  if(S.box!=null&&boxes.length){
+   const sel=S.box==='all'?null:boxes[S.box];
+   const outl=S.box==='all'?boxes.map((b,i)=>({minF:b.minF,maxF:b.maxF,alt:i%2===1,label:'Box '+(i+1)})):[{minF:sel.minF,maxF:sel.maxF,label:'Box '+(S.box+1)}];
+   $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{keep:sel?sel.keys:null,boxes:outl,sel:S.selMidi,octNum:!!sel});
+  } else $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{range,sel:S.selMidi,octNum:!!range||S.selMidi!=null});
+ }
  const info=$('#ex-octinfo');
- const places=m=>{const out=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=15)out.push(`string ${tun.length-s} fret ${f}`);});return out;};
+ const places=m=>{const out=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=EXF)out.push(`string ${tun.length-s} fret ${f}`);});return out;};
  if(S.selMidi!=null){const m=S.selMidi,lab=marks.get(m%12).lab+octOf(m,marks.get(m%12).lab),pl=places(m);
   info.innerHTML=`<b>${lab}</b> (${freq(m).toFixed(1)} Hz) is ringed in ${pl.length} place${pl.length>1?'s':''}: ${pl.join(', ')}. Same pitch, different string. Tap it again to clear.`;}
+ else if(S.box!=null&&window.__boxes&&window.__boxes.length&&S.kind!=='triads'){const bx=window.__boxes;
+  if(S.box==='all')info.innerHTML=`The scale splits into <b>${bx.length} boxes</b> that link up the neck, each overlapping the next. Learn them one at a time, then slide between neighbours to travel the whole fretboard while you improvise.`;
+  else{const b=bx[S.box];info.innerHTML=`<b>Box ${S.box+1}</b> · frets ${b.minF}–${b.maxF} · starts on ${notes[it.f.indexOf(b.lbl)]||''} (${pretty(b.lbl==='1'?'R':b.lbl)}) on the low string. Improvise inside the box: start and end your phrases on the <b>gold roots</b>, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes. When it feels easy, slide up into Box ${(S.box+1)%bx.length+1}.`;}}
  else if(range)info.innerHTML=`Lit: the ${scaleMidis.size} notes from <b>${rn}${octOf(range[0],S.root)}</b> up to <b>${rn}${octOf(range[1],S.root)}</b>, with octave numbers. Everything faded is the same scale in another octave. Tap a dot to ring every place that exact pitch appears.`;
  else info.innerHTML='Pick an octave to light up one complete run of the scale, root to root. Or tap any dot to ring every place on the neck with that exact same pitch.';
  const cats=new Set(it.f.map(ivCat));
@@ -883,6 +928,7 @@ $$('#ex-kind button').forEach(b=>b.onclick=()=>{S.kind=b.dataset.k;save();render
 $$('#ex-label button').forEach(b=>b.onclick=()=>{S.label=b.dataset.l;save();renderExplorer();});
 $('#ex-item').onchange=e=>{S.item[S.kind]=e.target.value;save();renderExplorer();};
 $('#ex-board').addEventListener('click',e=>{const m=e.target.getAttribute&&e.target.getAttribute('data-m');if(!m)return;pluck(freq(+m),0,1.6,.25);S.selMidi=S.selMidi===+m?null:+m;renderExplorer();});
+$('#ex-boxplay').onclick=()=>{const b=window.__boxes&&window.__boxes[S.box];if(!b)return;const seq=[...b.ms,...b.ms.slice(0,-1).reverse()];seq.forEach((m,i)=>pluck(freq(m),i*.2,.8,.22));};
 $('#ex-play').onclick=()=>{const it=exItem(),rootPc=pcOf(S.root),tun=tuning();
  if(S.kind==='triads'){const n=tun.length;const ks=S.tset==='all'?[n-3]:[n-3-S.tset];const ts=triadShapes(rootPc,it.f,tun,ks[0]).filter(t=>S.tinv==='all'||t.inv===S.tinv);ts.slice(0,9).forEach((t,i)=>strum(t.ms,i*.9,.06,1.1,.18));return;}
  if(S.kind==='chords'){const vs=voicings(rootPc,it.f,it.opt,tun);let midis;if(vs.length){const v=[...vs].sort((a,b)=>b.score-a.score)[0];midis=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}else midis=bestVoicingMidis(rootPc,it.id,tun);
