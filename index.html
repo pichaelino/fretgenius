@@ -112,6 +112,7 @@ select{padding-right:28px}
 .board-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 6px}
 .board-wrap svg{display:block;min-width:820px;width:100%;height:auto}
 #ex-board svg{min-width:1340px}
+svg .tline.run{stroke:var(--accent);stroke-width:3.5;opacity:.85}
 svg .boxr{fill:var(--accent);fill-opacity:.07;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 4}
 svg .boxr.alt{stroke:var(--iv3);fill:var(--iv3)}
 svg .boxl{fill:var(--accent);font:700 11px var(--f-body)}
@@ -735,10 +736,45 @@ function scaleBoxes(rootPc,it,tun){
   const frs=notes.map(x=>x[1]);const minF=Math.min(...frs),maxF=Math.max(...frs);
   if(exSemis.length)for(let st=0;st<n;st++)for(let fr=minF;fr<=maxF;fr++){const m=tun[st]+fr;if(exSemis.includes(((m-rootPc)%12+12)%12))notes.push([st,fr,m]);}
   notes.sort((a,b)=>a[2]-b[2]);
-  boxes.push({k,lbl:base[semis.indexOf(semis[k])]||base[k],keys:new Set(notes.map(x=>x[0]+','+x[1])),minF,maxF,ms:notes.map(x=>x[2])});
+  boxes.push({k,lbl:base[semis.indexOf(semis[k])]||base[k],notes,minF,maxF});
   prev=sf;
  }
- return boxes;
+ const all=[];
+ boxes.forEach(b=>[-12,0,12].forEach(sh=>{const ns=b.notes.map(([st,f,m])=>[st,f+sh,m+sh]);if(ns.some(x=>x[1]<0||x[1]>EXF))return;
+  all.push({k:b.k,lbl:b.lbl,keys:new Set(ns.map(x=>x[0]+','+x[1])),minF:b.minF+sh,maxF:b.maxF+sh,ms:ns.map(x=>x[2])});}));
+ all.sort((a,b)=>a.minF-b.minF||a.k-b.k);
+ const occ={};all.forEach(b=>{occ[b.k]=(occ[b.k]||0)+1;b.name='Box '+(b.k+1)+(occ[b.k]>1?' ('+occ[b.k]+')':'');});
+ return all;
+}
+function fullRun(rootPc,it,tun){
+ const semis=new Set(it.f.map(l=>IV[l]%12));const n=tun.length;
+ const inS=m=>semis.has(((m-rootPc)%12+12)%12);
+ const P=[];for(let m=tun[0];m<=tun[n-1]+EXF;m++)if(inS(m))P.push(m);
+ if(P.length<n)return null;
+ const target=Math.ceil(P.length/n),CMAX=target+3,INF=1e9;
+ // state: [string][count on that string]
+ const dp=P.map(()=>Array.from({length:n},()=>new Array(CMAX+1).fill(INF)));
+ const bk=P.map(()=>Array.from({length:n},()=>new Array(CMAX+1).fill(null)));
+ dp[0][0][1]=0;
+ for(let i=1;i<P.length;i++)for(let ps=0;ps<n;ps++)for(let c=1;c<=CMAX;c++){const v=dp[i-1][ps][c];if(v>=INF)continue;const pf=P[i-1]-tun[ps];
+  // same string
+  {const f=P[i]-tun[ps];if(f<=EXF&&c+1<=CMAX){const d=f-pf;const cost=(d<=2?.4:d<=4?1.2:4+d)+(c+1>target?3*(c+1-target):0);if(v+cost<dp[i][ps][c+1]){dp[i][ps][c+1]=v+cost;bk[i][ps][c+1]=[ps,c];}}}
+  // next string
+  if(ps+1<n){const f=P[i]-tun[ps+1];if(f>=0&&f<=EXF){const d=f-pf;const cost=.6+(c<target-1?2*(target-1-c):0)+(d<-2?(-2-d)*2:0)+(d>3?(d-3)*1.5:0);if(v+cost<dp[i][ps+1][1]){dp[i][ps+1][1]=v+cost;bk[i][ps+1][1]=[ps,c];}}}
+ }
+ const L=P.length-1;let best=INF,bc=-1;for(let c=1;c<=CMAX;c++)if(dp[L][n-1][c]<best){best=dp[L][n-1][c];bc=c;}
+ if(best>=INF)return null;
+ const pts=[];let st=n-1,c=bc;for(let i=L;i>=0;i--){pts.push([st,P[i]-tun[st],P[i]]);const pr=bk[i][st][c];if(!pr)break;[st,c]=pr;}
+ return pts.reverse();
+}
+function octGroups(P,tun){
+ const n=tun.length,out=[],seen=new Set();
+ for(let w=0;w<=EXF-3;w++){const lo=w,hi=Math.min(EXF,w+4);let st=0;const pts=[];let ok=true;
+  for(const m of P){let placed=false;for(let s=st;s<n;s++){const f=m-tun[s];if((f>=lo&&f<=hi)||(f===0&&w<=1)){pts.push([s,f,m]);st=s;placed=true;break;}}if(!placed){ok=false;break;}}
+  if(!ok)continue;const key=pts.map(x=>x[0]+','+x[1]).join(' ');if(seen.has(key))continue;seen.add(key);
+  const frs=pts.map(x=>x[1]).filter(f=>f>0),mn=frs.length?Math.min(...frs):0,mx=frs.length?Math.max(...frs):0;
+  out.push({pts,minF:pts.some(x=>x[1]===0)?0:mn,maxF:mx,score:(mx-mn)*2+new Set(pts.map(x=>x[0])).size*.5});}
+ out.sort((a,b)=>a.minF-b.minF);return out;
 }
 function octOf(m,lab){let o=Math.floor(m/12)-1;const pc=m%12;if(lab&&lab[0]==='B'&&pc<=1)o--;if(lab&&lab[0]==='C'&&pc>=10)o++;return o;}
 function boardSVG(tun,marks,frets=15,opt={}){
@@ -823,10 +859,18 @@ function renderExplorer(){
  if(S.oct!==null&&S.oct!==undefined&&!spans.includes(S.oct)){const prev=S.oct;S.oct=spans.reduce((a,b)=>Math.abs(b-prev)<Math.abs(a-prev)?b:a,spans[0]);}
  const ob=$('#ex-oct');ob.innerHTML='';
  const rn=notes[0];
- const mk=(label,val)=>{const b=el('button',{'aria-pressed':String((S.oct??null)===val)},label);b.onclick=()=>{S.oct=val;if(val!==null)S.box=null;S.selMidi=null;save();renderExplorer();};ob.appendChild(b);};
+ const mk=(label,val)=>{const b=el('button',{'aria-pressed':String((S.oct??null)===val)},label);b.onclick=()=>{S.oct=val;S.octPos=null;if(val!==null)S.box=null;S.selMidi=null;save();renderExplorer();};ob.appendChild(b);};
  mk('All',null);spans.forEach(r=>mk(`${rn}${octOf(r,S.root)}–${rn}${octOf(r+12,S.root)}`,r));
  const range=S.oct!=null?[S.oct,S.oct+12]:null;
  const scaleMidis=new Set();if(range)for(let m=range[0];m<=range[1];m++)if(marks.has(m%12))scaleMidis.add(m);
+ let og=null,ogs=[];
+ if(range){ogs=octGroups([...scaleMidis].sort((a,b)=>a-b),tun);
+  if(ogs.length){if(S.octPos==null||S.octPos>=ogs.length){let bi=0;ogs.forEach((g,i)=>{if(g.score<ogs[bi].score)bi=i;});S.octPos=bi;}og=ogs[S.octPos];
+   const nav=el('span',{class:'row',style:'gap:4px;margin-left:8px'});
+   const st=d=>{S.octPos=(S.octPos+d+ogs.length)%ogs.length;save();renderExplorer();};
+   nav.append(el('button',{class:'btn ghost sm','aria-label':'Previous position',onclick:()=>st(-1)},'◀'),el('span',{class:'vpos'},`position ${S.octPos+1}/${ogs.length}`),el('button',{class:'btn ghost sm','aria-label':'Next position',onclick:()=>st(1)},'▶'));
+   ob.parentNode.querySelector('.octnav')?.remove();nav.classList.add('octnav');ob.after(nav);}}
+ if(!og)ob.parentNode.querySelector('.octnav')?.remove();
  if(S.selMidi!=null&&!marks.has(S.selMidi%12))S.selMidi=null;
  $('#ex-octpanel').hidden=S.kind==='triads';
  let tri=null;const tp=$('#ex-tripanel');tp.hidden=S.kind!=='triads';tp.innerHTML='';
@@ -851,25 +895,33 @@ function renderExplorer(){
   tp.appendChild(ctr);
   tp.appendChild(el('div',{class:'ivlegend'},`<span><i class="ln r0"></i>Root position: root at the bottom</span><span><i class="ln r1"></i>1st inversion: 3rd at the bottom</span><span><i class="ln r2"></i>2nd inversion: 5th at the bottom</span><span>Strings are numbered from the thinnest (1 = high E).</span>`));
  } else {
-  const boxes=scaleBoxes(rootPc,it,tun);if(S.box!=null&&S.box!=='all'&&S.box>=boxes.length)S.box=null;
-  const bb=$('#ex-box');bb.innerHTML='';$('#ex-boxbar').hidden=!boxes.length;
+  const boxes=scaleBoxes(rootPc,it,tun);if(S.box!=null&&S.box!=='all'&&S.box!=='run'&&S.box>=boxes.length)S.box=null;
+  const bb=$('#ex-box');bb.innerHTML='';
   const bt=(lab,val)=>{const b=el('button',{'aria-pressed':String((S.box??null)===val)},lab);b.onclick=()=>{S.box=val;if(val!==null)S.oct=null;S.selMidi=null;save();renderExplorer();};bb.appendChild(b);};
-  bt('Off',null);boxes.forEach((b,i)=>bt('Box '+(i+1),i));if(boxes.length)bt('All boxes','all');
-  $('#ex-boxplay').hidden=S.box==null||S.box==='all';
+  bt('Off',null);boxes.forEach((b,i)=>bt(`${b.name} · ${b.minF}–${b.maxF}`,i));if(boxes.length)bt('All boxes','all');const run=fullRun(rootPc,it,tun);if(run)bt('Full neck','run');window.__run=run;
+  $('#ex-boxbar').hidden=bb.children.length<2;
+  if(S.box==='run'&&!window.__run)S.box=null;
+  $('#ex-boxplay').hidden=S.box==null||S.box==='all';$('#ex-boxplay').textContent=S.box==='run'?'▶ Play full run':'▶ Play box';
   window.__boxes=boxes;
-  if(S.box!=null&&boxes.length){
+  if(S.box==='run'){const r=window.__run;$('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{keep:new Set(r.map(x=>x[0]+','+x[1])),lines:[{pts:r.map(x=>[x[0],x[1]]),hl:true,c:'run'}],sel:S.selMidi,octNum:true});}
+  else if(S.box!=null&&boxes.length){
    const sel=S.box==='all'?null:boxes[S.box];
-   const outl=S.box==='all'?boxes.map((b,i)=>({minF:b.minF,maxF:b.maxF,alt:i%2===1,label:'Box '+(i+1)})):[{minF:sel.minF,maxF:sel.maxF,label:'Box '+(S.box+1)}];
+   const outl=S.box==='all'?boxes.map((b,i)=>({minF:b.minF,maxF:b.maxF,alt:i%2===1,label:b.name})):[{minF:sel.minF,maxF:sel.maxF,label:sel.name}];
    $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{keep:sel?sel.keys:null,boxes:outl,sel:S.selMidi,octNum:!!sel});
-  } else $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{range,sel:S.selMidi,octNum:!!range||S.selMidi!=null});
+  } else if(og)$('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{range,keep:new Set(og.pts.map(x=>x[0]+','+x[1])),boxes:[{minF:og.minF,maxF:og.maxF,label:'Play these'}],lines:[{pts:og.pts.map(x=>[x[0],x[1]]),hl:true,c:'run'}],sel:S.selMidi,octNum:true});
+  else $('#ex-board').innerHTML=boardSVG(tun,marks,EXF,{range,sel:S.selMidi,octNum:!!range||S.selMidi!=null});
  }
  const info=$('#ex-octinfo');
  const places=m=>{const out=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=EXF)out.push(`string ${tun.length-s} fret ${f}`);});return out;};
  if(S.selMidi!=null){const m=S.selMidi,lab=marks.get(m%12).lab+octOf(m,marks.get(m%12).lab),pl=places(m);
   info.innerHTML=`<b>${lab}</b> (${freq(m).toFixed(1)} Hz) is ringed in ${pl.length} place${pl.length>1?'s':''}: ${pl.join(', ')}. Same pitch, different string. Tap it again to clear.`;}
+ else if(S.box==='run'&&window.__run&&S.kind!=='triads'){const r=window.__run;const nm=x=>marks.get(x[2]%12).lab+octOf(x[2],marks.get(x[2]%12).lab);const per=[];for(let st=tun.length-1;st>=0;st--)per.push(`string ${tun.length-st}: ${r.filter(x=>x[0]===st).length}`);
+  info.innerHTML=`<b>Full neck run</b> · ${r.length} notes from <b>${nm(r[0])}</b> (string ${tun.length}, fret ${r[0][1]}) up to <b>${nm(r[r.length-1])}</b> (string 1, fret ${r[r.length-1][1]}), every pitch once. Notes per string: ${per.reverse().join(' · ')}. Follow the line. Where it moves along a string, shift your hand or slide with the same finger.`;}
  else if(S.box!=null&&window.__boxes&&window.__boxes.length&&S.kind!=='triads'){const bx=window.__boxes;
-  if(S.box==='all')info.innerHTML=`The scale splits into <b>${bx.length} boxes</b> that link up the neck, each overlapping the next. Learn them one at a time, then slide between neighbours to travel the whole fretboard while you improvise.`;
-  else{const b=bx[S.box];info.innerHTML=`<b>Box ${S.box+1}</b> · frets ${b.minF}–${b.maxF} · starts on ${notes[it.f.indexOf(b.lbl)]||''} (${pretty(b.lbl==='1'?'R':b.lbl)}) on the low string. Improvise inside the box: start and end your phrases on the <b>gold roots</b>, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes. When it feels easy, slide up into Box ${(S.box+1)%bx.length+1}.`;}}
+  const uniq=new Set(bx.map(x=>x.k)).size;
+  if(S.box==='all')info.innerHTML=`The scale splits into <b>${uniq} boxes</b> that link up the neck, each overlapping the next. On 23 frets they repeat an octave (12 frets) higher, so you see ${bx.length} positions here. "(2)" marks the repeat. Learn them one at a time, then slide between neighbours to travel the whole fretboard while you improvise.`;
+  else{const b=bx[S.box],nx=bx[S.box+1];info.innerHTML=`<b>${b.name}</b> · frets ${b.minF}–${b.maxF} · starts on ${notes[it.f.indexOf(b.lbl)]||''} (${pretty(b.lbl==='1'?'R':b.lbl)}) on the low string.${S.box===0?' This is the first position, the box nearest the nut.':''}${/\(/.test(b.name)?' Same shape as the lower one, an octave (12 frets) higher.':''} Improvise inside the box: start and end your phrases on the <b>gold roots</b>, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes.${nx?` When it feels easy, slide up into ${nx.name}.`:''}`;}}
+ else if(range&&og)info.innerHTML=`Highlighted: one hand position that plays all <b>${og.pts.length} notes</b> from <b>${rn}${octOf(range[0],S.root)}</b> up to <b>${rn}${octOf(range[1],S.root)}</b>, each once, frets ${og.minF}–${og.maxF}. Follow the line from the low string up. Use ◀ ▶ to see the same octave in another position, and ▶ Play to hear it.`;
  else if(range)info.innerHTML=`Lit: the ${scaleMidis.size} notes from <b>${rn}${octOf(range[0],S.root)}</b> up to <b>${rn}${octOf(range[1],S.root)}</b>, with octave numbers. Everything faded is the same scale in another octave. Tap a dot to ring every place that exact pitch appears.`;
  else info.innerHTML='Pick an octave to light up one complete run of the scale, root to root. Or tap any dot to ring every place on the neck with that exact same pitch.';
  const cats=new Set(it.f.map(ivCat));
@@ -928,7 +980,7 @@ $$('#ex-kind button').forEach(b=>b.onclick=()=>{S.kind=b.dataset.k;save();render
 $$('#ex-label button').forEach(b=>b.onclick=()=>{S.label=b.dataset.l;save();renderExplorer();});
 $('#ex-item').onchange=e=>{S.item[S.kind]=e.target.value;save();renderExplorer();};
 $('#ex-board').addEventListener('click',e=>{const m=e.target.getAttribute&&e.target.getAttribute('data-m');if(!m)return;pluck(freq(+m),0,1.6,.25);S.selMidi=S.selMidi===+m?null:+m;renderExplorer();});
-$('#ex-boxplay').onclick=()=>{const b=window.__boxes&&window.__boxes[S.box];if(!b)return;const seq=[...b.ms,...b.ms.slice(0,-1).reverse()];seq.forEach((m,i)=>pluck(freq(m),i*.2,.8,.22));};
+$('#ex-boxplay').onclick=()=>{if(S.box==='run'&&window.__run){window.__run.forEach((x,i)=>pluck(freq(x[2]),i*.16,.7,.22));return;}const b=window.__boxes&&window.__boxes[S.box];if(!b)return;const seq=[...b.ms,...b.ms.slice(0,-1).reverse()];seq.forEach((m,i)=>pluck(freq(m),i*.2,.8,.22));};
 $('#ex-play').onclick=()=>{const it=exItem(),rootPc=pcOf(S.root),tun=tuning();
  if(S.kind==='triads'){const n=tun.length;const ks=S.tset==='all'?[n-3]:[n-3-S.tset];const ts=triadShapes(rootPc,it.f,tun,ks[0]).filter(t=>S.tinv==='all'||t.inv===S.tinv);ts.slice(0,9).forEach((t,i)=>strum(t.ms,i*.9,.06,1.1,.18));return;}
  if(S.kind==='chords'){const vs=voicings(rootPc,it.f,it.opt,tun);let midis;if(vs.length){const v=[...vs].sort((a,b)=>b.score-a.score)[0];midis=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}else midis=bestVoicingMidis(rootPc,it.id,tun);
