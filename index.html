@@ -209,6 +209,7 @@ svg .tn.dead rect{fill:var(--surface-2)} svg .tn.dead text{fill:var(--bad)}
 .cpop[hidden]{display:none}
 .cpop b{font:700 16px var(--f-body)} .cpop small{font:500 11px var(--f-mono);color:var(--muted)} .cpop span{font-size:11px;color:var(--muted)}
 .cpop svg{width:118px;height:auto}
+.cpop .cpn{color:var(--ink);font-weight:600;max-width:170px;text-align:center}
 svg .tch{cursor:pointer}
 .vnotes{font:600 12px var(--f-mono);color:var(--ink);letter-spacing:.02em}
 .vtop{font:600 11px/1.3 var(--f-body);text-align:center;padding:2px 6px;border-radius:5px;background:var(--surface-2);border-left:3px solid var(--dot)}
@@ -1321,7 +1322,7 @@ function renderSong(){
   const ranks=detectKey(valid);
   key=ranks[0];if(S.forced){const f=ranks.find(r=>r.t===S.forced.t&&r.mode===S.forced.mode);if(f)key=f;}
   // chips
-  valid.forEach((c,i)=>{const a=classify(c,key);const chip=el('div',{class:'pc '+a.cls,tabindex:'0',title:a.note,'data-i':i,'data-pop':c.raw,'data-popctx':'song'});
+  valid.forEach((c,i)=>{const a=classify(c,key);const chip=el('div',{class:'pc '+a.cls,tabindex:'0','data-i':i,'data-pop':c.raw,'data-popctx':'song','data-popnote':pretty(a.rn)+' · '+a.note});
    chip.innerHTML=`<b>${pretty(c.raw)}</b><span>${pretty(a.rn)}</span>`;
    const x=el('button',{class:'x','aria-label':'Remove '+c.raw},'×');x.onclick=ev=>{ev.stopPropagation();const tk=tokens(S.song);let n=-1;const idx=tk.findIndex(t=>{if(parseChord(t))n++;return n===i&&parseChord(t);});tk.splice(idx,1);S.song=tk.join(' ');S.songIsSample=false;S.forced=null;save();renderSong();};
    chip.appendChild(x);chip.onclick=()=>strum(songMidis(c));chip.onkeydown=e=>{if(e.key==='Enter')chip.click();};prog.appendChild(chip);});
@@ -1902,7 +1903,7 @@ function chordPopShape(name,ctx){const c=parseChord(name);if(!c)return null;
   const vs=voicings(c.pc,CH[c.type].f,CH[c.type].opt,tun,c.bpc,'ease');return vs.length?{c,tun,v:vs[0],src:'easiest shape'}:null;}
  const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return null;const i=(songShapeIdx.get(c.raw)||0)%vs.length;return{c,tun,v:vs[i],src:i===0?'easiest shape':`shape ${i+1} of ${vs.length}`};}
 function showChordPop(t){const name=t.getAttribute('data-pop'),ctx=t.getAttribute('data-popctx');const r=chordPopShape(name,ctx);if(!r){hideChordPop();return;}
- cpopFor=t;CPOP.innerHTML=`<b>${pretty(name)}</b><span>${r.src}</span>`+diagramSVG(r.v,r.tun,r.c.pc)+`<small>${r.v.frets.map(x=>x<0?'x':x).join(' ')}</small>`;CPOP.hidden=false;
+ cpopFor=t;const note=t.getAttribute('data-popnote');CPOP.innerHTML=`<b>${pretty(name)}</b>${note?`<span class="cpn">${note.replace(/</g,'&lt;')}</span>`:''}<span>${r.src}</span>`+diagramSVG(r.v,r.tun,r.c.pc)+`<small>${r.v.frets.map(x=>x<0?'x':x).join(' ')}</small>`;CPOP.hidden=false;
  const b=t.getBoundingClientRect(),pw=CPOP.offsetWidth,ph=CPOP.offsetHeight,vw=window.innerWidth;
  let x=b.left+b.width/2-pw/2;x=Math.max(8,Math.min(vw-pw-8,x));let y=b.top-ph-8;if(y<70)y=b.bottom+8;
  CPOP.style.left=x+'px';CPOP.style.top=y+'px';}
