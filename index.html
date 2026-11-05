@@ -56,7 +56,7 @@ nav.tabs button[aria-current="page"]{color:var(--on-accent);background:var(--acc
 @media (max-width:760px){
   header.top nav.tabs{display:none}
   .bottom-nav{display:block;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(0,0,0,.08);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-  .bottom-nav nav.tabs{margin:0;flex-wrap:nowrap;gap:0;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px}
+  .bottom-nav nav.tabs{margin:0;flex-wrap:nowrap;gap:0;display:grid;grid-template-columns:repeat(6,1fr);padding:6px 2px}
   .bottom-nav nav.tabs button{flex-direction:column;gap:4px;padding:8px 2px;font-size:11px;border-radius:8px;min-height:54px;justify-content:center}
   .bottom-nav nav.tabs button svg{width:22px;height:22px}
   .bottom-nav nav.tabs button .l{display:none}
@@ -139,6 +139,12 @@ svg .dt.c3,svg .dt.c5,svg .dt.c7{fill:var(--iv-ink)}
 .ivhelp b{color:var(--ink)}
 .vname{font:700 15px/1.1 var(--f-body);color:var(--ink)}
 .vpos{font:500 11px var(--f-body);color:var(--muted);text-align:center}
+.kc-deg{display:flex;flex-direction:column;gap:10px}
+.kc-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.kc-head b{font:800 30px/1 var(--f-display)}
+.kc-head .num{font:700 15px var(--f-mono);color:var(--on-accent);background:var(--accent);padding:3px 8px;border-radius:6px}
+.kc-head .fn{font-size:13px;color:var(--muted)}
+.kc-head .play{margin-left:auto}
 .sug-row{display:flex;gap:6px;align-items:stretch}
 .sug-row .tpl{flex:1;min-width:0}
 .shape-play{border:0;background:transparent;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;color:inherit}
@@ -148,6 +154,7 @@ svg .dt.c3,svg .dt.c5,svg .dt.c7{fill:var(--iv-ink)}
 .vtop{font:600 11px/1.3 var(--f-body);text-align:center;padding:2px 6px;border-radius:5px;background:var(--surface-2);border-left:3px solid var(--dot)}
 .vtop.root{border-left-color:var(--accent)} .vtop.c3{border-left-color:var(--iv3)} .vtop.c5{border-left-color:var(--iv5)} .vtop.c7{border-left-color:var(--iv7)}
 .grid-v{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}
+@media (max-width:480px){.grid-v{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}}
 svg .fn{fill:var(--muted);font:500 11px var(--f-mono)}
 svg .sn{fill:var(--muted);font:600 11px var(--f-mono)}
 
@@ -272,6 +279,7 @@ svg .mtog.muted text{fill:var(--bad)}
 (()=>{const items=[
  ['explore','Fretboard','Neck','<path d="M3 7h18M3 12h18M3 17h18M8 5v14M14 5v14"/>'],
  ['finder','Chord Finder','Finder','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],
+ ['keys','Key Chords','Keys','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'],
  ['tuner','Tuner','Tuner','<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-6"/>'],
  ['circle','Circle of Fifths','Circle','<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/>'],
  ['song','Song Builder','Song','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>']];
@@ -341,6 +349,23 @@ svg .mtog.muted text{fill:var(--bad)}
     <div class="panel" id="fd-result"></div>
     <div class="panel" id="fd-suggest"></div>
   </div>
+</section>
+
+<!-- KEY CHORDS -->
+<section class="view" id="v-keys" hidden>
+  <div class="head">
+    <h1 class="vt">Key chords</h1>
+    <p class="lede">Pick a note and a key type. You get every chord that belongs to that key, its common variations, and the shapes to play each one.</p>
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <div class="group"><span class="lbl">Key note</span><div class="roots" id="kc-roots"></div></div>
+      <div class="group"><span class="lbl">Key</span><div class="seg" id="kc-mode"><button data-m="major">Major</button><button data-m="minor">Minor</button></div></div>
+      <div class="group"><span class="lbl">Show</span><div class="seg" id="kc-lvl"><button data-l="basic">Basic chords</button><button data-l="sev">+ 7ths</button><button data-l="all">All variations</button></div></div>
+    </div>
+    <p class="ivhelp" id="kc-summary"></p>
+  </div>
+  <div id="kc-list" class="col"></div>
 </section>
 
 <!-- TUNER -->
@@ -636,13 +661,13 @@ function voicings(rootPc,f,opt,tun,bassPc,mode){
     const got=new Set();for(let s=0;s<n;s++)if(cur[s]>=0)got.add((tun[s]+cur[s])%12);
     if(!req.every(p=>got.has(p)))return;
     const fretted=cur.filter(x=>x>0);
-    let fingers=0;if(fretted.length){const mn=Math.min(...fretted),cnt=fretted.filter(x=>x===mn).length;fingers=cnt>=2?1+fretted.filter(x=>x>mn).length:fretted.length;}
+    let fingers=0;if(fretted.length){const mn=Math.min(...fretted),cnt=fretted.filter(x=>x===mn).length;fingers=fretted.length<=4?fretted.length:(cnt>=2?1+fretted.filter(x=>x>mn).length:fretted.length);}
     if(fingers>4)return;
     const opens=cur.filter(x=>x===0).length;
     const mn=fretted.length?Math.min(...fretted):0, mx=fretted.length?Math.max(...fretted):0;
     if(mx-mn>3)return;
     const barre=fretted.filter(x=>x===mn).length>=2&&fingers<fretted.length;
-    if(barre){let bf=-1,bl=-1;for(let s=0;s<n;s++)if(cur[s]===mn){if(bf<0)bf=s;bl=s;}for(let s=bf;s<=bl;s++)if(cur[s]===0)return;}
+    {let bf=-1,bl=-1;for(let s=0;s<n;s++)if(cur[s]===mn&&mn>0){if(bf<0)bf=s;bl=s;}if(bf>=0&&bl>bf){for(let s=bf+1;s<bl;s++)if(cur[s]===0)return;}}
     const ease=played*.8-fingers*1.2-(barre?2.5:0)-mn*.5+opens*1-inner*3-(mx-mn)*.4+(got.size===pcs.length?1:0);
     const score=played*4-inner*7+got.size*1.5-(mx-mn)*.6-mn*.18+(mn<=3?opens*.6:-opens*2)-(first>0?first*.4:0);
     const key=cur.map((f,s)=>f>=0?tun[s]+f:'').filter(x=>x!=='').join(',');
@@ -883,7 +908,7 @@ $('#tu-all').onclick=()=>{const tun=tuning();tun.forEach((m,i)=>setTimeout(()=>{
 $('#tu-a4').onchange=e=>{let v=Math.round(+e.target.value);if(!(v>=400&&v<=480))v=440;S.a4=v;vcache.clear();save();renderTuner();};
 $('#tu-a4-reset').onclick=()=>{S.a4=440;save();renderTuner();};
 $('#tu-hold').onchange=()=>{if(held){held.stop();held=null;heldBtn&&heldBtn.classList.remove('on');heldBtn=null;}};
-$$('.tuning-sel').forEach(s=>s.addEventListener('change',e=>{S.tuning=e.target.value;save();$$('.tuning-sel').forEach(x=>x.value=S.tuning);fdGhost=null;renderExplorer();renderTuner();if(S.view==='finder')renderFinder();}));
+$$('.tuning-sel').forEach(s=>s.addEventListener('change',e=>{S.tuning=e.target.value;save();$$('.tuning-sel').forEach(x=>x.value=S.tuning);fdGhost=null;renderExplorer();renderTuner();if(S.view==='finder')renderFinder();if(S.view==='keys')renderKeys();}));
 // gauge ticks
 (()=>{let g='';g+=`<path class="garc" d="M ${200-170*Math.sin(Math.PI/3)} ${200-170*Math.cos(Math.PI/3)} A 170 170 0 0 1 ${200+170*Math.sin(Math.PI/3)} ${200-170*Math.cos(Math.PI/3)}" stroke-width="2"></path>`;
  const a5=5/50*Math.PI/3;g+=`<path class="gzone" d="M 200 200 L ${200-178*Math.sin(a5)} ${200-178*Math.cos(a5)} A 178 178 0 0 1 ${200+178*Math.sin(a5)} ${200-178*Math.cos(a5)} Z"></path>`;
@@ -1370,13 +1395,69 @@ $('#fd-play').onclick=()=>{const m=fdNotes().filter(x=>x!==null);if(m.length)str
 $('#fd-arp').onclick=()=>{fdNotes().filter(x=>x!==null).forEach((m,i)=>pluck(freq(m),i*.28,1.2,.22));};
 $('#fd-clear').onclick=()=>{const fd=fdState();fd.frets=fd.frets.map(()=>null);fd.sample=false;fdGhost=null;renderFinder();};
 
+/* ---------- key chords ---------- */
+const kcIdx=new Map();
+function shapeCard(title,sub,rootPc,type,keyId){
+ const tun=songTuning(),ch=CH[type];const vs=voicings(rootPc,ch.f,ch.opt,tun,null,'ease');
+ const card=el('div',{class:'voicing',style:'cursor:default'});
+ if(!vs.length){card.innerHTML=`<span class="vname">${title}</span><span class="vpos">${sub}</span><span class="vpos">No easy shape found</span>`;return card;}
+ const draw=()=>{const idx=(kcIdx.get(keyId)||0)%vs.length,v=vs[idx];
+  const fretted=v.frets.filter(x=>x>0),mn=fretted.length?Math.min(...fretted):0,mx=fretted.length?Math.max(...fretted):0;
+  const pos=mx<=4&&v.frets.includes(0)?'Open position':(fretted.filter(x=>x===mn).length>=2?`Barre, fret ${mn}`:`Fret ${mn}`);
+  const ms=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);
+  card.innerHTML=`<span class="vname">${title}</span><span class="vpos">${sub}</span>`;
+  const play=el('button',{class:'shape-play',title:'Play '+title},diagramSVG(v,tun,rootPc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small><span class="vpos">${idx===0?'Easiest · ':''}${pos}</span>`);
+  play.onclick=()=>strum(ms);card.appendChild(play);
+  const nav=el('div',{class:'shape-nav'});
+  const step=d=>{kcIdx.set(keyId,(idx+d+vs.length)%vs.length);draw();const v2=vs[(kcIdx.get(keyId))%vs.length];strum(v2.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null));};
+  nav.appendChild(el('button',{class:'btn ghost sm','aria-label':'Previous shape',onclick:()=>step(-1)},'◀'));
+  nav.appendChild(el('span',{class:'vpos'},`${idx+1} / ${vs.length}`));
+  nav.appendChild(el('button',{class:'btn ghost sm','aria-label':'Next shape',onclick:()=>step(1)},'▶'));
+  card.appendChild(nav);};
+ draw();return card;
+}
+function renderKeys(){
+ if(!S.kc)S.kc={root:'C',mode:'major',lvl:'sev'};
+ const kc=S.kc,names=kc.mode==='major'?MAJ_NAMES:MIN_NAMES;
+ const rb=$('#kc-roots');rb.innerHTML='';const curPc=pcOf(kc.root);
+ names.forEach((nm,pc)=>rb.appendChild(el('button',{class:'pill','aria-pressed':String(pc===curPc),onclick:()=>{kc.root=nm;save();renderKeys();}},pretty(nm))));
+ kc.root=names[curPc];
+ $$('#kc-mode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===kc.mode)));
+ $$('#kc-lvl button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.l===kc.lvl)));
+ const key={t:curPc,mode:kc.mode,name:kc.root};
+ const lbls=kc.mode==='major'?['1','2','3','4','5','6','7']:['1','2','b3','4','5','b6','b7'];
+ const tri=buildTriadsFromScale(kc.root,lbls);
+ const relT=kc.mode==='major'?(curPc+9)%12:(curPc+3)%12,relName=kc.mode==='major'?MIN_NAMES[relT]:MAJ_NAMES[relT];
+ $('#kc-summary').innerHTML=`<b>${pretty(kc.root)} ${kc.mode}</b> uses the notes <b>${lbls.map(l=>pretty(spellIv(kc.root,l))).join(' ')}</b>. Every chord below is built only from those notes, so they all sound good together. Its relative key, <b>${pretty(relName)} ${kc.mode==='major'?'minor':'major'}</b>, shares the same chords. Tap a diagram to hear it, and use ◀ ▶ for more shapes.`;
+ const FN=kc.mode==='major'?['Home (tonic)','Leads to V','Soft, links to vi','Moves away (subdominant)','Tension, wants to go home (dominant)','Sad home (relative minor)','Very tense, leads home']:['Home (tonic)','Tense, leads to V','Bright, relative major','Moves away (subdominant)','Soft dominant','Lift, epic','Rock lift back to i'];
+ const list=$('#kc-list');list.innerHTML='';
+ const VAR={maj:t7=>['maj',t7,'sus2','sus4','add9','six',t7==='dom7'?'nine':'maj9'],min:t7=>['min',t7,'madd9','m9','m11'],dim:t7=>['dim',t7]};
+ const degs=tri.map(d=>({...d}));
+ if(kc.mode==='minor')degs.splice(5,0,{rootName:spellIv(kc.root,'5'),pc:(curPc+7)%12,type:'maj',t7:'dom7',deg:4,harm:true});
+ degs.forEach(d=>{
+  const c={pc:d.pc,type:d.type,bpc:null};let rn=roman(c,key);
+  const panel=el('div',{class:'panel kc-deg'});
+  const head=el('div',{class:'kc-head'},`<span class="num">${pretty(rn)}</span><b>${pretty(d.rootName+CH[d.type].sym)}</b><span class="fn">${d.harm?'Major V borrowed from harmonic minor: a stronger pull home':FN[d.deg]}</span>`);
+  const pb=el('button',{class:'btn ghost sm play'},'▶ Hear in key');pb.onclick=()=>{const tonic=bestVoicingMidis(curPc,kc.mode==='major'?'maj':'min',songTuning());strum(tonic,0,.03,1.4,.15);strum(bestVoicingMidis(d.pc,d.type,songTuning()),1.1,.03,1.8,.16);};head.appendChild(pb);
+  panel.appendChild(head);
+  let vars=(VAR[d.type]||(()=>[d.type]))(d.t7).filter(Boolean);
+  if(kc.lvl==='basic')vars=vars.slice(0,1);else if(kc.lvl==='sev')vars=vars.slice(0,2);
+  vars=[...new Set(vars)];
+  const g=el('div',{class:'grid-v'});
+  vars.forEach(v=>g.appendChild(shapeCard(pretty(d.rootName+CH[v].sym),CH[v].name,d.pc,v,kc.root+kc.mode+d.deg+v)));
+  panel.appendChild(g);list.appendChild(panel);
+ });
+}
+$$('#kc-mode button').forEach(b=>b.onclick=()=>{S.kc.mode=b.dataset.m;const pc=pcOf(S.kc.root);S.kc.root=(S.kc.mode==='major'?MAJ_NAMES:MIN_NAMES)[pc];save();renderKeys();});
+$$('#kc-lvl button').forEach(b=>b.onclick=()=>{S.kc.lvl=b.dataset.l;save();renderKeys();});
+
 /* ---------- routing ---------- (go is declared early so other tools can call it) */
-const VIEWS=['explore','finder','tuner','circle','song'];
+const VIEWS=['explore','finder','keys','tuner','circle','song'];
 function show(v){if(!VIEWS.includes(v))v='explore';S.view=v;save();
  VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;});
  $$('[data-v]').forEach(b=>{if(b.dataset.v===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  if(v!=='song'&&playTimer)stopPlay();
- if(v==='explore')renderExplorer();if(v==='finder')renderFinder();if(v==='tuner')renderTuner();if(v==='circle')renderCircle();if(v==='song')renderSong();
+ if(v==='explore')renderExplorer();if(v==='finder')renderFinder();if(v==='keys')renderKeys();if(v==='tuner')renderTuner();if(v==='circle')renderCircle();if(v==='song')renderSong();
  try{window.scrollTo(0,0);}catch(e){}}
 go=v=>{show(v);try{if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);}catch(e){}};
 $$('[data-v]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();go(b.dataset.v);}));
