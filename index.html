@@ -139,6 +139,11 @@ svg .dt.c3,svg .dt.c5,svg .dt.c7{fill:var(--iv-ink)}
 .ivhelp b{color:var(--ink)}
 .vname{font:700 15px/1.1 var(--f-body);color:var(--ink)}
 .vpos{font:500 11px var(--f-body);color:var(--muted);text-align:center}
+.sug-row{display:flex;gap:6px;align-items:stretch}
+.sug-row .tpl{flex:1;min-width:0}
+.shape-play{border:0;background:transparent;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;color:inherit}
+.shape-play small{font:500 11px var(--f-mono);color:var(--muted)}
+.shape-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;margin-top:4px}
 .vnotes{font:600 12px var(--f-mono);color:var(--ink);letter-spacing:.02em}
 .vtop{font:600 11px/1.3 var(--f-body);text-align:center;padding:2px 6px;border-radius:5px;background:var(--surface-2);border-left:3px solid var(--dot)}
 .vtop.root{border-left-color:var(--accent)} .vtop.c3{border-left-color:var(--iv3)} .vtop.c5{border-left-color:var(--iv5)} .vtop.c7{border-left-color:var(--iv7)}
@@ -432,6 +437,7 @@ svg .mtog.muted text{fill:var(--bad)}
       </div>
     </div>
   </div>
+  <div class="panel" id="sg-shapes"></div>
   <div class="sgrid">
     <div class="col">
       <div class="panel" id="sg-key"></div>
@@ -610,20 +616,21 @@ function tone(f,dur){const c=ac(),t=c.currentTime;const o=c.createOscillator(),o
  return{stop(){const n=c.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.setTargetAtTime(0,n,.06);[o,o2,o3].forEach(x=>{try{x.stop(n+.4)}catch(e){}});}};}
 
 /* ---------- chord voicing search ---------- */
-function voicings(rootPc,f,opt,tun){
- const pcs=[...new Set(f.map(l=>(rootPc+IV[l])%12))];
- const req=[...new Set(f.filter(l=>!(opt||[]).includes(l)).map(l=>(rootPc+IV[l])%12))];
+function voicings(rootPc,f,opt,tun,bassPc,mode){
+ const bp=bassPc==null?rootPc:bassPc;
+ const pcs=[...new Set([...f.map(l=>(rootPc+IV[l])%12),bp])];
+ const req=[...new Set([...f.filter(l=>!(opt||[]).includes(l)).map(l=>(rootPc+IV[l])%12),bp])];
  const n=tun.length, found=new Map();
  const minPlayed=Math.min(n,Math.max(3,Math.min(req.length,4)));
  for(let w=0;w<=12;w++){
   const lo=w===0?1:w, hi=w===0?4:w+3;
-  const opts=tun.map(o=>{const a=[-1];if(pcs.includes(o%12)&&w<=5)a.push(0);for(let fr=lo;fr<=hi;fr++)if(pcs.includes((o+fr)%12))a.push(fr);return a;});
+  const opts=tun.map(o=>{const a=[-1];if(pcs.includes(o%12)&&w<=2)a.push(0);for(let fr=lo;fr<=hi;fr++)if(pcs.includes((o+fr)%12))a.push(fr);return a;});
   const cur=new Array(n);
   (function rec(i){
    if(i===n){
     let first=-1,last=-1,played=0;for(let s=0;s<n;s++)if(cur[s]>=0){if(first<0)first=s;last=s;played++;}
     if(played<minPlayed)return;
-    if((tun[first]+cur[first])%12!==rootPc)return;
+    if((tun[first]+cur[first])%12!==bp)return;
     let inner=0;for(let s=first;s<=last;s++)if(cur[s]<0)inner++;
     if(inner>1)return;
     const got=new Set();for(let s=0;s<n;s++)if(cur[s]>=0)got.add((tun[s]+cur[s])%12);
@@ -634,14 +641,18 @@ function voicings(rootPc,f,opt,tun){
     const opens=cur.filter(x=>x===0).length;
     const mn=fretted.length?Math.min(...fretted):0, mx=fretted.length?Math.max(...fretted):0;
     if(mx-mn>3)return;
+    const barre=fretted.filter(x=>x===mn).length>=2&&fingers<fretted.length;
+    if(barre){let bf=-1,bl=-1;for(let s=0;s<n;s++)if(cur[s]===mn){if(bf<0)bf=s;bl=s;}for(let s=bf;s<=bl;s++)if(cur[s]===0)return;}
+    const ease=played*.8-fingers*1.2-(barre?2.5:0)-mn*.5+opens*1-inner*3-(mx-mn)*.4+(got.size===pcs.length?1:0);
     const score=played*4-inner*7+got.size*1.5-(mx-mn)*.6-mn*.18+(mn<=3?opens*.6:-opens*2)-(first>0?first*.4:0);
     const key=cur.map((f,s)=>f>=0?tun[s]+f:'').filter(x=>x!=='').join(',');
-    if(!found.has(key))found.set(key,{frets:cur.slice(),score,mn});
+    if(!found.has(key))found.set(key,{frets:cur.slice(),score,mn,ease});
     return;
    }
    for(const x of opts[i]){cur[i]=x;rec(i+1);}
   })(0);
  }
+ if(mode==='ease'){const byE=[...found.values()].sort((a,b)=>b.ease-a.ease);const o=[],u=new Map();for(const v of byE){const pos=Math.floor(v.mn/3);const c=u.get(pos)||0;if(c>=2)continue;u.set(pos,c+1);o.push(v);if(o.length>=8)break;}return o;}
  const all=[...found.values()].sort((a,b)=>b.score-a.score);
  const out=[],used=new Map();
  for(const v of all){const pos=Math.floor(v.mn/3);const c=used.get(pos)||0;if(c>=2)continue;used.set(pos,c+1);out.push(v);if(out.length>=8)break;}
@@ -1080,6 +1091,7 @@ function renderSong(){
  const bad=tokens(S.song).filter((t,i)=>!parsed[i]);
  $('#sg-note').innerHTML=bad.length?`Couldn't read: <b>${bad.map(b=>b.replace(/</g,'&lt;')).join(', ')}</b>. Chords start with a letter A–G.`:(S.songIsSample?'<span class="sample-tag">Example progression</span> · type your own chords above.':'Separate chords with spaces. Slash chords (G/B), sevenths and extensions (Cmaj7, Dm9, E7♯9) all work.');
  const prog=$('#sg-prog');prog.innerHTML='';
+ renderSongShapes(valid);
  const kbox=$('#sg-key'),abox=$('#sg-analysis'),nbox=$('#sg-next'),pbox=$('#sg-palette'),scb=$('#sg-scales'),tbox=$('#sg-templates');
  let key;
  if(!valid.length){
@@ -1093,7 +1105,7 @@ function renderSong(){
   valid.forEach((c,i)=>{const a=classify(c,key);const chip=el('div',{class:'pc '+a.cls,tabindex:'0',title:a.note,'data-i':i});
    chip.innerHTML=`<b>${pretty(c.raw)}</b><span>${pretty(a.rn)}</span>`;
    const x=el('button',{class:'x','aria-label':'Remove '+c.raw},'×');x.onclick=ev=>{ev.stopPropagation();const tk=tokens(S.song);let n=-1;const idx=tk.findIndex(t=>{if(parseChord(t))n++;return n===i&&parseChord(t);});tk.splice(idx,1);S.song=tk.join(' ');S.songIsSample=false;S.forced=null;save();renderSong();};
-   chip.appendChild(x);chip.onclick=()=>strum(bestVoicingMidis(c.pc,c.type,songTuning()));chip.onkeydown=e=>{if(e.key==='Enter')chip.click();};prog.appendChild(chip);});
+   chip.appendChild(x);chip.onclick=()=>strum(songMidis(c));chip.onkeydown=e=>{if(e.key==='Enter')chip.click();};prog.appendChild(chip);});
   // key card
   kbox.innerHTML='';kbox.appendChild(el('h3',{},'Key of the song'));
   const conf=key.p>.6?'Clear':key.p>.35?'Likely':'Ambiguous';
@@ -1132,6 +1144,36 @@ function renderSong(){
 }
 function addChord(name){S.song=(S.song.trim()+' '+name).trim();S.songIsSample=false;save();renderSong();strum(bestVoicingMidis(parseChord(name).pc,parseChord(name).type,songTuning()));}
 function songTuning(){const t=tuning();return t.length>=6&&t.length<=7?t:TU.std.n;}
+const songShapeIdx=new Map(),songVCache=new Map();
+function songVoicings(c){const tun=songTuning();const key=c.pc+'|'+c.type+'|'+c.bpc+'|'+tun.join(',');
+ if(!songVCache.has(key)){const ch=CH[c.type];let vs=voicings(c.pc,ch.f,ch.opt,tun,c.bpc,'ease');if(!vs.length&&c.bpc!=null)vs=voicings(c.pc,ch.f,ch.opt,tun,null,'ease');songVCache.set(key,vs);}
+ return songVCache.get(key);}
+function songMidis(c){const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return bestVoicingMidis(c.pc,c.type,tun);
+ const v=vs[(songShapeIdx.get(c.raw)||0)%vs.length];return v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}
+function renderSongShapes(valid){
+ const box=$('#sg-shapes');box.innerHTML='';const tun=songTuning();
+ box.appendChild(el('h3',{},`How to play these chords · ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'Standard tuning'}`));
+ if(!valid.length){box.appendChild(el('p',{class:'empty'},'Add chords and their shapes appear here.'));return;}
+ const seen=new Set(),g=el('div',{class:'grid-v'});
+ valid.forEach(c=>{if(seen.has(c.raw))return;seen.add(c.raw);
+  const vs=songVoicings(c);const card=el('div',{class:'voicing',style:'cursor:default'});
+  if(!vs.length){card.innerHTML=`<span class="vname">${pretty(c.raw)}</span><span class="vpos">No easy shape found</span>`;g.appendChild(card);return;}
+  const idx=(songShapeIdx.get(c.raw)||0)%vs.length,v=vs[idx];
+  const fretted=v.frets.filter(x=>x>0),mn=fretted.length?Math.min(...fretted):0,mx=fretted.length?Math.max(...fretted):0;
+  const pos=mx<=4&&v.frets.includes(0)?'Open position':(fretted.filter(x=>x===mn).length>=2?`Barre, fret ${mn}`:`Fret ${mn}`);
+  const ms=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);
+  card.innerHTML=`<span class="vname">${pretty(c.raw)}</span><span class="vpos">${idx===0?'Easiest · ':''}${pos}</span>`;
+  const play=el('button',{class:'shape-play',title:'Play '+c.raw,'aria-label':'Play '+c.raw},diagramSVG(v,tun,c.pc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small>`);
+  play.onclick=()=>strum(ms);card.appendChild(play);
+  const nav=el('div',{class:'shape-nav'});
+  const step=d=>{songShapeIdx.set(c.raw,(idx+d+vs.length)%vs.length);renderSongShapes(curChords().filter(Boolean));strum(songMidis(c));};
+  nav.appendChild(el('button',{class:'btn ghost sm','aria-label':'Previous shape',onclick:()=>step(-1)},'◀'));
+  nav.appendChild(el('span',{class:'vpos'},`${idx+1} / ${vs.length}`));
+  nav.appendChild(el('button',{class:'btn ghost sm','aria-label':'Next shape',onclick:()=>step(1)},'▶'));
+  card.appendChild(nav);g.appendChild(card);});
+ box.appendChild(g);
+ box.appendChild(el('p',{class:'empty'},'Tap a diagram to hear it, or use ◀ ▶ for other ways to play the same chord. "Play progression" uses the shapes shown here. Fret numbers read from the thickest string to the thinnest, and × means don\'t play that string.'));
+}
 function modeHint(ch,key){
  const rels=ch.map(c=>({rel:(c.pc-key.t+12)%12,min:isMinorish(c),c}));
  const last=ch[ch.length-1],first=ch[0];
@@ -1215,7 +1257,7 @@ $('#sg-play').onclick=()=>{
  const step=()=>{$$('.pc.playing').forEach(x=>x.classList.remove('playing'));
   if(playIdx>=ch.length){playIdx=0;}
   const c=ch[playIdx];const chip=$(`.pc[data-i="${playIdx}"]`);chip&&chip.classList.add('playing');
-  const m=bestVoicingMidis(c.pc,c.type,songTuning());let mm=m;if(c.bpc!==null){const low=Math.min(...m);let b=low-((low-c.bpc)%12+12)%12;if(b===low)b=low;mm=[b,...m.filter(x=>x!==b)];}
+  const mm=songMidis(c);
   strum(mm,0,.028,beat*2.2,.15);strum([...mm].reverse().slice(0,4),beat*2,.02,beat*2,.09);
   playIdx++;playTimer=setTimeout(step,beat*4*1000);};
  step();
@@ -1223,6 +1265,17 @@ $('#sg-play').onclick=()=>{
 
 /* ---------- chord finder ---------- */
 let fdGhost=null; // {pcs:Set}
+let fdLastTap={};
+function placeChord(p){
+ const tun=tuning(),fd=fdState(),ch=CH[p.type];
+ const vs=voicings(p.root,ch.f,ch.opt,tun,null,'ease');
+ if(!vs.length){fdGhost=Object.assign(new Set(p.missing),{key:nameOf(p.root,p.type)});renderFinder();return;}
+ const matchCount=v=>v.frets.reduce((a,f,s)=>a+(fd.frets[s]!==null&&fd.frets[s]===f?1:0),0);
+ const best=[...vs].sort((a,b)=>matchCount(b)-matchCount(a)||b.ease-a.ease)[0];
+ fd.frets=best.frets.map(f=>f<0?null:f);fd.sample=false;fdGhost=null;
+ renderFinder();strum(best.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null),0,.035,2.2,.17);
+ try{document.getElementById('fd-board').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+}
 function fdState(){const n=tuning().length;
  if(!S.fd||!Array.isArray(S.fd.frets)||S.fd.frets.length!==n){S.fd={frets:n===6&&S.tuning==='std'?[null,3,2,0,1,0]:new Array(n).fill(null),sample:n===6&&S.tuning==='std'};}
  return S.fd;}
@@ -1298,9 +1351,12 @@ function renderFinder(){
  if(!pick.length){sb.appendChild(el('p',{class:'empty'},res.pcs&&res.pcs.length?'No simple chord is one or two notes away from this shape.':'Suggestions show up once you place a note or two.'));}
  else{const box=el('div',{class:'tpls'});pick.forEach(p=>{const nm=nameOf(p.root,p.type);const add=p.missing.map(m=>pretty(AUTO[m])).join(' + ');
   const active=fdGhost&&fdGhost.key===nm;
+  const row=el('div',{class:'sug-row'});
   const b=el('button',{class:'tpl','aria-pressed':active?'true':'false',style:active?'border-color:var(--accent)':''},`<span><b>${pretty(nm)}</b> <span class="mono" style="color:var(--muted)">${CH[p.type].name}</span></span><small>add ${add}${active?' · shown':' · show where'}</small>`);
-  b.onclick=()=>{fdGhost=active?null:Object.assign(new Set(p.missing),{key:nm});renderFinder();};box.appendChild(b);});sb.appendChild(box);
-  sb.appendChild(el('p',{class:'empty'},'Tap a suggestion to see every place on the neck where the missing note sits.'));}
+  b.onclick=()=>{const now=Date.now();if(fdLastTap.nm===nm&&now-fdLastTap.t<500){fdLastTap={};placeChord(p);return;}fdLastTap={nm,t:now};fdGhost=active?null:Object.assign(new Set(p.missing),{key:nm});renderFinder();};
+  const pl=el('button',{class:'btn sm',title:'Put '+nm+' on the fretboard'},'Place');pl.onclick=()=>placeChord(p);
+  row.append(b,pl);box.appendChild(row);});sb.appendChild(box);
+  sb.appendChild(el('p',{class:'empty'},'Tap a suggestion to see where the missing note sits. Double-tap it, or press Place, to put the whole chord on the fretboard. Fretwise keeps the notes you already placed where it can.'));}
  save();
 }
 $('#fd-board').addEventListener('click',e=>{
