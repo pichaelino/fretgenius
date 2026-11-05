@@ -118,6 +118,11 @@ svg .dt{fill:var(--dot-ink);font:600 10px var(--f-mono);pointer-events:none}
 svg .dt.root{fill:var(--on-accent)}
 svg .dim{opacity:.22} svg .dim .dot{cursor:pointer}
 svg .tline{fill:none;stroke:var(--muted);stroke-width:3;stroke-linejoin:round;opacity:.45} svg .tline.hl{stroke:var(--accent);opacity:1;stroke-width:4}
+svg .tline.r0{stroke:var(--accent)} svg .tline.r1{stroke:var(--iv3)} svg .tline.r2{stroke:var(--iv5)} svg .tline{opacity:.6}
+.ln{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:6px;vertical-align:3px;background:var(--muted)}
+.ln.r0{background:var(--accent)} .ln.r1{background:var(--iv3)} .ln.r2{background:var(--iv5)}
+.vinv{font:600 11px var(--f-body);padding:1px 7px;border-radius:10px;color:var(--iv-ink);background:var(--muted)}
+.vinv.r0{background:var(--accent);color:var(--on-accent)} .vinv.r1{background:var(--iv3)} .vinv.r2{background:var(--iv5)}
 svg .samering{fill:none;stroke:var(--ink);stroke-width:2.5}
 .octbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
 .octbar .seg{flex-wrap:wrap}
@@ -302,6 +307,7 @@ svg .mtog.muted text{fill:var(--bad)}
     <div class="octbar"><span class="lbl">Octave</span><div class="seg" id="ex-oct"></div></div>
     <p class="octinfo" id="ex-octinfo"></p>
   </div>
+  <div class="panel" id="ex-tripanel" hidden></div>
   <div class="board-wrap" id="ex-board"></div>
   <div class="ivlegend" id="ex-legend"></div>
   <div class="panel" id="ex-extra"></div>
@@ -577,9 +583,10 @@ const TUNINGS=[
 const TU=Object.fromEntries(TUNINGS.map(t=>[t.id,t]));
 
 /* ---------- state ---------- */
-const DEF={view:'explore',root:'A',kind:'scales',item:{scales:'minpent',modes:'dorian',chords:'m7',triads:'maj'},tset:0,tinv:'all',thl:null,label:'notes',tuning:'std',a4:440,enh:'auto',song:'Am F C G',songIsSample:true,bpm:90,sev:false,circle:{i:0,minor:false},forced:null,oct:null,selMidi:null};
+const DEF={view:'explore',root:'A',kind:'scales',item:{scales:'minpent',modes:'dorian',chords:'m7',triads:'maj'},tset:'all',tinv:'all',thl:null,label:'notes',tuning:'std',a4:440,enh:'auto',song:'Am F C G',songIsSample:true,bpm:90,sev:false,circle:{i:0,minor:false},forced:null,oct:null,selMidi:null};
 let S;
 try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('fretwise')||'{}'));S.item=Object.assign({},DEF.item,S.item);}catch(e){S=structuredClone(DEF);}
+if(S.tsetV!==2){S.tset='all';S.tsetV=2;}
 const save=()=>{try{localStorage.setItem('fretwise',JSON.stringify(S));}catch(e){}};
 const tuning=()=>(TU[S.tuning]||TU.std).n;
 const freq=m=>S.a4*Math.pow(2,(m-69)/12);
@@ -681,7 +688,7 @@ function boardSVG(tun,marks,frets=15,opt={}){
   s+=`<line class="str" x1="${nutX-26}" x2="${nutX+frets*fw}" y1="${y}" y2="${y}" stroke-width="${w.toFixed(2)}"></line>`;
   s+=`<text class="sn" x="8" y="${y+4}">${pretty(AUTO[tun[st]%12])}</text>`;}
  const PX=f=>f===0?nutX-24:nutX+(f-.5)*fw,PY=st=>top+(n-1-st)*sg;
- if(opt.lines)opt.lines.forEach(L=>{s+=`<polyline class="tline${L.hl?' hl':''}${L.dim?' dim':''}" points="${L.pts.map(([st,f])=>PX(f)+','+PY(st)).join(' ')}"></polyline>`;});
+ if(opt.lines)opt.lines.forEach(L=>{s+=`<polyline class="tline ${L.c||''}${L.hl?' hl':''}${L.dim?' dim':''}" points="${L.pts.map(([st,f])=>PX(f)+','+PY(st)).join(' ')}"></polyline>`;});
  for(let i=0;i<n;i++){const st=n-1-i,y=top+i*sg;
   for(let f=0;f<=frets;f++){const m=tun[st]+f,pc=m%12,mk=marks.get(pc);if(!mk)continue;if(opt.only&&!opt.only.has(st+','+f))continue;
    const x=f===0?nutX-24:nutX+(f-.5)*fw;
@@ -754,17 +761,27 @@ function renderExplorer(){
  const scaleMidis=new Set();if(range)for(let m=range[0];m<=range[1];m++)if(marks.has(m%12))scaleMidis.add(m);
  if(S.selMidi!=null&&!marks.has(S.selMidi%12))S.selMidi=null;
  $('#ex-octpanel').hidden=S.kind==='triads';
- let tri=null;
+ let tri=null;const tp=$('#ex-tripanel');tp.hidden=S.kind!=='triads';tp.innerHTML='';
  if(S.kind==='triads'){
-  const n=tun.length;if(S.tset>n-3||S.tset<0)S.tset=0;
-  const k=n-3-S.tset;
-  tri=triadShapes(rootPc,it.f,tun,k).filter(t=>S.tinv==='all'||t.inv===S.tinv);
+  const n=tun.length;if(S.tset!=='all'&&(typeof S.tset!=='number'||S.tset>n-3||S.tset<0))S.tset='all';
+  const ks=S.tset==='all'?[...Array(n-2).keys()].map(i=>n-3-i):[n-3-S.tset];
+  tri=[];ks.forEach(k=>tri.push(...triadShapes(rootPc,it.f,tun,k).filter(t=>S.tinv==='all'||t.inv===S.tinv)));
   if(S.thl!=null&&S.thl>=tri.length)S.thl=null;
   const only=new Set(),fade=new Set();
-  tri.forEach((t,i)=>t.fr.forEach((f,j)=>{const key=(k+j)+','+f;only.add(key);}));
-  if(S.thl!=null){const keep=new Set(tri[S.thl].fr.map((f,j)=>(k+j)+','+f));only.forEach(x=>{if(!keep.has(x))fade.add(x);});}
-  const lines=tri.map((t,i)=>({pts:t.fr.map((f,j)=>[k+j,f]),hl:i===S.thl,dim:S.thl!=null&&i!==S.thl}));
+  tri.forEach(t=>t.fr.forEach((f,j)=>only.add((t.k+j)+','+f)));
+  if(S.thl!=null){const h=tri[S.thl];const keep=new Set(h.fr.map((f,j)=>(h.k+j)+','+f));only.forEach(x=>{if(!keep.has(x))fade.add(x);});}
+  const INVC={'Root position':'r0','1st inversion':'r1','2nd inversion':'r2'};
+  const lines=tri.map((t,i)=>({pts:t.fr.map((f,j)=>[t.k+j,f]),hl:i===S.thl,dim:S.thl!=null&&i!==S.thl,c:INVC[t.inv]||''}));
   $('#ex-board').innerHTML=boardSVG(tun,marks,15,{only,fade,lines,sel:S.selMidi});
+  // controls above the board
+  const segRow=(label,opts,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label));const sg=el('div',{class:'seg',style:'flex-wrap:wrap'});opts.forEach(([v,t])=>{const b=el('button',{'aria-pressed':String(cur===v)},t);b.onclick=()=>{set(v);S.thl=null;save();renderExplorer();};sg.appendChild(b);});g.appendChild(sg);return g;};
+  const setName=k=>`${n-k-2}-${n-k-1}-${n-k}`;
+  const sets=[['all','All strings']];for(let i=0;i<=n-3;i++)sets.push([i,setName(n-3-i)]);
+  const ctr=el('div',{class:'toolbar'});
+  ctr.appendChild(segRow('Strings',sets,S.tset,v=>S.tset=v));
+  ctr.appendChild(segRow('Inversion',[['all','All'],['Root position','Root'],['1st inversion','1st'],['2nd inversion','2nd']],S.tinv,v=>S.tinv=v));
+  tp.appendChild(ctr);
+  tp.appendChild(el('div',{class:'ivlegend'},`<span><i class="ln r0"></i>Root position: root at the bottom</span><span><i class="ln r1"></i>1st inversion: 3rd at the bottom</span><span><i class="ln r2"></i>2nd inversion: 5th at the bottom</span><span>Strings are numbered from the thinnest (1 = high E).</span>`));
  } else $('#ex-board').innerHTML=boardSVG(tun,marks,15,{range,sel:S.selMidi,octNum:!!range||S.selMidi!=null});
  const info=$('#ex-octinfo');
  const places=m=>{const out=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=15)out.push(`string ${tun.length-s} fret ${f}`);});return out;};
@@ -776,24 +793,20 @@ function renderExplorer(){
  $('#ex-legend').innerHTML=[['root','var(--accent)','Root (home note)'],['c3','var(--iv3)','3rd: major or minor colour'],['c5','var(--iv5)','5th: power and stability'],['c7','var(--iv7)','7th: jazzy or bluesy tension'],['c0','var(--dot)','Other scale notes']].filter(x=>cats.has(x[0])).map(x=>`<span><i style="background:${x[1]}"></i>${x[2]}</span>`).join('')+`<span>Tap “Intervals” above to label dots with R, ♭3, 5…</span>`;
  const extra=$('#ex-extra');extra.innerHTML='';
  if(S.kind==='triads'){
-  const n=tun.length;
-  const segRow=(label,opts,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label));const sg=el('div',{class:'seg',style:'flex-wrap:wrap'});opts.forEach(([v,t])=>{const b=el('button',{'aria-pressed':String(cur===v)},t);b.onclick=()=>{set(v);S.thl=null;save();renderExplorer();};sg.appendChild(b);});g.appendChild(sg);return g;};
-  const sets=[];for(let i=0;i<=n-3;i++){const k=n-3-i;sets.push([i,`${n-k-2}-${n-k-1}-${n-k} · ${[k+2,k+1,k].map(s=>pretty(AUTO[tun[s]%12])).join(' ')}`]);}
-  const ctr=el('div',{class:'toolbar'});
-  ctr.appendChild(segRow('Strings (thin → thick)',sets.map(([v,t])=>[v,t.replace(/^(\d)-(\d)-(\d)/,(m,a,b,c)=>a+'-'+b+'-'+c)]),S.tset,v=>S.tset=v));
-  ctr.appendChild(segRow('Inversion',[['all','All'],['Root position','Root'],['1st inversion','1st'],['2nd inversion','2nd']],S.tinv,v=>S.tinv=v));
-  extra.appendChild(ctr);
-  extra.appendChild(el('p',{class:'ivhelp'},`A <b>triad</b> is the 3-note core of every chord: root, 3rd and 5th. Playing it on three neighbouring strings gives small, clean shapes you can move anywhere. <b>Root position</b> has the root lowest. <b>1st inversion</b> puts the 3rd in the bass, and <b>2nd inversion</b> puts the 5th in the bass. The three shapes repeat every 12 frets. Tap a card to hear it and highlight it on the neck.`));
-  const g=el('div',{class:'grid-v'});const cname=pretty(S.root+it.sym);
-  const k=n-3-S.tset;
-  if(!tri.length)extra.appendChild(el('p',{class:'empty'},'No close 3-note shapes on this string set.'));
-  tri.forEach((t,i)=>{const frets=new Array(n).fill(-1);t.fr.forEach((f,j)=>frets[k+j]=f);
-   const nm=t.bl==='1'?cname:cname+'/'+pretty(spellIv(S.root,t.bl));
-   const lbs=t.ms.map(m=>it.f.find(l=>(rootPc+IV[l])%12===m%12));
-   const tl=lbs[2];const TOPC={root:'solid',c3:'sweet',c5:'open',c7:'jazzy',c0:'colourful'};
-   const b=el('button',{class:'voicing',style:i===S.thl?'border-color:var(--accent);outline:2px solid var(--accent)':'',title:'Play '+nm},`<span class="vname">${nm}</span><span class="vpos">${t.inv}</span>`+diagramSVG({frets},tun,rootPc)+`<small>${frets.map(x=>x<0?'x':x).join(' ')}</small><span class="vnotes">${lbs.map(l=>pretty(spellIv(S.root,l))).join(' ')}</span><span class="vtop ${ivCat(lbs[0])}">Bass ${pretty(spellIv(S.root,lbs[0]))} (${pretty(lbs[0]==='1'?'R':lbs[0])}) · top ${pretty(spellIv(S.root,tl))}</span>`);
-   b.onclick=()=>{strum(t.ms,0,.05,1.8,.2);S.thl=S.thl===i?null:i;save();renderExplorer();};g.appendChild(b);});
-  extra.appendChild(g);
+  const n=tun.length,cname=pretty(S.root+it.sym);
+  extra.appendChild(el('p',{class:'ivhelp'},`A <b>triad</b> is the 3-note core of every chord: root, 3rd and 5th. On three neighbouring strings it makes a small shape you can move anywhere. Every group of strings has three shapes (root position, 1st and 2nd inversion) that link together up the neck and repeat every 12 frets. Tap a card to hear it and see it on the neck.`));
+  if(!tri.length)extra.appendChild(el('p',{class:'empty'},'No close 3-note shapes found here.'));
+  const byK=new Map();tri.forEach((t,i)=>{if(!byK.has(t.k))byK.set(t.k,[]);byK.get(t.k).push([t,i]);});
+  byK.forEach((list,k)=>{
+   extra.appendChild(el('h3',{style:'margin-top:6px'},`Strings ${n-k-2}-${n-k-1}-${n-k} · ${[k+2,k+1,k].map(s=>pretty(AUTO[tun[s]%12])).join(' ')}`));
+   const g=el('div',{class:'grid-v'});
+   list.forEach(([t,i])=>{const frets=new Array(n).fill(-1);t.fr.forEach((f,j)=>frets[t.k+j]=f);
+    const nm=t.bl==='1'?cname:cname+'/'+pretty(spellIv(S.root,t.bl));
+    const lbs=t.ms.map(m=>it.f.find(l=>(rootPc+IV[l])%12===m%12));
+    const INVC={'Root position':'r0','1st inversion':'r1','2nd inversion':'r2'};
+    const b=el('button',{class:'voicing',style:i===S.thl?'border-color:var(--accent);outline:2px solid var(--accent)':'',title:'Play '+nm},`<span class="vname">${nm}</span><span class="vinv ${INVC[t.inv]||''}">${t.inv}</span>`+diagramSVG({frets},tun,rootPc)+`<small>${frets.map(x=>x<0?'x':x).join(' ')}</small><span class="vnotes">${lbs.map(l=>pretty(spellIv(S.root,l))).join(' ')}</span><span class="vpos">low → high</span>`);
+    b.onclick=()=>{strum(t.ms,0,.05,1.8,.2);S.thl=S.thl===i?null:i;save();renderExplorer();try{document.getElementById('ex-board').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}};g.appendChild(b);});
+   extra.appendChild(g);});
  } else if(S.kind==='chords'){
   const vs=voicings(rootPc,it.f,it.opt,tun);
   extra.appendChild(el('h3',{},`Playable shapes in ${TU[S.tuning].name}`));
@@ -833,7 +846,7 @@ $$('#ex-label button').forEach(b=>b.onclick=()=>{S.label=b.dataset.l;save();rend
 $('#ex-item').onchange=e=>{S.item[S.kind]=e.target.value;save();renderExplorer();};
 $('#ex-board').addEventListener('click',e=>{const m=e.target.getAttribute&&e.target.getAttribute('data-m');if(!m)return;pluck(freq(+m),0,1.6,.25);S.selMidi=S.selMidi===+m?null:+m;renderExplorer();});
 $('#ex-play').onclick=()=>{const it=exItem(),rootPc=pcOf(S.root),tun=tuning();
- if(S.kind==='triads'){const n=tun.length,k=n-3-S.tset;const ts=triadShapes(rootPc,it.f,tun,k).filter(t=>S.tinv==='all'||t.inv===S.tinv);ts.slice(0,9).forEach((t,i)=>strum(t.ms,i*.9,.06,1.1,.18));return;}
+ if(S.kind==='triads'){const n=tun.length;const ks=S.tset==='all'?[n-3]:[n-3-S.tset];const ts=triadShapes(rootPc,it.f,tun,ks[0]).filter(t=>S.tinv==='all'||t.inv===S.tinv);ts.slice(0,9).forEach((t,i)=>strum(t.ms,i*.9,.06,1.1,.18));return;}
  if(S.kind==='chords'){const vs=voicings(rootPc,it.f,it.opt,tun);let midis;if(vs.length){const v=[...vs].sort((a,b)=>b.score-a.score)[0];midis=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}else midis=bestVoicingMidis(rootPc,it.id,tun);
   midis.forEach((m,i)=>pluck(freq(m),i*.18,1.4,.2));strum(midis,midis.length*.18+.25,.03,2.4);}
  else{const base=S.oct!=null?S.oct:40+((rootPc-4+12)%12);const seq=[...new Set(it.f.map(l=>IV[l]))].sort((a,b)=>a-b).map(x=>base+x);seq.push(base+12);seq.forEach((m,i)=>pluck(freq(m),i*.24,.9,.22));}
