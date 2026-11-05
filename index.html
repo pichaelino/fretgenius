@@ -463,7 +463,9 @@ svg .mtog.muted text{fill:var(--bad)}
     </div>
     <div class="tb-tr-row" id="tb-moreRow" hidden>
       <div class="group"><label class="lbl" for="tb-bpm">BPM</label><div class="row" style="gap:8px"><input type="range" id="tb-bpm-r" min="40" max="220" step="1" style="width:130px" aria-label="BPM slider"><input type="number" id="tb-bpm" min="40" max="220" style="width:70px"></div></div>
-      <div class="group"><span class="lbl">Rhythm</span><div class="seg" id="tb-rhythm"><button data-r="even">Even notes</button><button data-r="space">Follow spacing</button></div></div>
+      <div class="group"><label class="lbl" for="tb-ts">Time signature</label><select id="tb-ts"></select></div>
+      <div class="group"><span class="lbl">Rhythm</span><div class="seg" id="tb-rhythm"><button data-r="fit">Fit to bar</button><button data-r="even">Even notes</button><button data-r="space">Follow spacing</button></div></div>
+      <div class="group"><span class="lbl">Each chord lasts</span><div class="seg" id="tb-cpb"><button data-c="0.5">½ bar</button><button data-c="1">1 bar</button><button data-c="2">2 bars</button></div></div>
       <div class="group"><label class="lbl" for="tb-tuning">Tuning</label><select id="tb-tuning"></select></div>
       <label class="row" style="gap:6px;cursor:pointer;font-size:14px"><input type="checkbox" id="tb-lyr"> Show lyrics</label>
     </div>
@@ -1655,7 +1657,9 @@ E|------------------------------|------------------------|
 CHORDS:
 Am- X02210
 E7- 020100`;
-if(S.tbBpm==null)S.tbBpm=90;if(!S.tbRhythm)S.tbRhythm='even';if(!S.tbTuning)S.tbTuning='auto';if(S.tbLyr==null)S.tbLyr=true;if(S.tbScope==null)S.tbScope='all';
+if(S.tbBpm==null)S.tbBpm=90;if(!S.tbRhythm||S.tbRV!==2){S.tbRhythm='fit';S.tbRV=2;}if(!S.tbTS)S.tbTS='auto';if(!S.tbCPB)S.tbCPB=1;
+const TSIGS=['4/4','3/4','2/4','6/8','12/8','5/4','7/8'];
+const tsInfo=ts=>{const[n,d]=ts.split('/').map(Number);const bb=n*4/d;const unit=d===8&&n%3===0?1.5:d===8?.5:1;return{n,d,bb,unit};};if(!S.tbTuning)S.tbTuning='auto';if(S.tbLyr==null)S.tbLyr=true;if(S.tbScope==null)S.tbScope='all';
 let tabText=null,tabSrc='';try{tabText=localStorage.getItem('fretwise-tab');tabSrc=localStorage.getItem('fretwise-tabsrc')||'';}catch(e){}
 let TABDOC=null;
 const isTabLine=l=>{const t=l.replace(/^\s*[A-Ga-g][#b]?\s*(?=\|)/,'');const d=(t.match(/-/g)||[]).length;return d>=6&&/^[\s|0-9\-\/\\bhprxXN~()^.*=<>s]+$/.test(t);};
@@ -1684,7 +1688,8 @@ function parseTab(text){
   const ct=chordLineTokens(l);if(ct){items.push({type:'chords',raw:l,toks:ct,line:i});continue;}
   items.push({type:'text',raw:l});
  }
- return{items,tuning,title,defs};
+ let ts=null;for(const l of lines){const m=l.match(/\btime(?:\s*sig(?:nature)?)?\s*[:\-]?\s*(\d{1,2})\s*\/\s*(2|4|8|16)\b/i);if(m){ts=m[1]+'/'+m[2];break;}}
+ return{items,tuning,title,defs,ts};
 }
 function shapeFromStr(str,n){str=str.trim();const a=/-/.test(str)?str.split('-'):str.split('');if(a.length!==n)return null;const v=a.map(x=>/^[xX]$/.test(x)?-1:/^\d+$/.test(x)?+x:null);return v.every(x=>x!==null)?v:null;}
 function tabEvents(grp,tun){
@@ -1794,7 +1799,7 @@ function tbHighlight(ev){PB.lastOn.forEach(id=>{const x=document.getElementById(
  if(first){const r=first.getBoundingClientRect(),vh=window.innerHeight;if(r.top<vh*.3||r.bottom>vh*.85){try{window.scrollBy({top:r.top-vh*.45,behavior:'smooth'});}catch(e){window.scrollBy(0,r.top-vh*.45);}}}}
 function tbSchedule(){
  const c=ac(),sd=secDur(),la=.25,now=beatNow(),tun=TABDOC.tun;
- while(PB.clickNext<now+la/sd){const b=PB.clickNext;if(b<PB.from||S.tbMetro){const t=PB.startCtx+(b-PB.startBeat)*sd;if(t>=c.currentTime-.01)clickAt(Math.max(t,c.currentTime),((b-PB.from)%4+4)%4===0);}PB.clickNext++;}
+ const TI=TABDOC.tsi;while(PB.clickNext<now+la/sd){const b=PB.clickNext;if(b<PB.from-1e-6||S.tbMetro){const t=PB.startCtx+(b-PB.startBeat)*sd;const rel=((b-PB.from)%TI.bb+TI.bb)%TI.bb;if(t>=c.currentTime-.01)clickAt(Math.max(t,c.currentTime),rel<1e-3||TI.bb-rel<1e-3);}PB.clickNext+=TI.unit;}
  while(PB.idx<PB.ev.length&&PB.ev[PB.idx].beat<now+la/sd){const ev=PB.ev[PB.idx++];const t=Math.max(c.currentTime,PB.startCtx+(ev.beat-PB.startBeat)*sd);
   if(ev.notes)ev.notes.forEach((e,k)=>{const d=t+k*.018;const ring=Math.max(.45,ev.dur*sd*2.2);
    const prev=PB.strH[e.st];if(prev)prev.stop(d);PB.strH[e.st]=null;
@@ -1802,7 +1807,9 @@ function tbSchedule(){
    const opts={dest:PB.bus,legato:!!e.leg,from:e.leg==='slide'&&e.from&&!e.from.dead?freq(e.from.m):0,slideIn:e.slideIn||0,slideOut:e.slideOut||0,vib:!!e.vib,bend:e.bend!=null?freq(tun[e.st]+e.bend):0,release:e.release!=null?freq(tun[e.st]+e.release):0};
    if(e.trem){const nrep=Math.max(3,Math.round(ev.dur*8));const stp=ev.dur*sd/nrep;for(let q=0;q<nrep;q++){if(PB.strH[e.st])PB.strH[e.st].stop(d+q*stp);PB.strH[e.st]=tabNote(freq(e.m),d+q*stp,stp*1.4,.17,{...opts,legato:q>0?false:opts.legato,from:q?0:opts.from});}return;}
    PB.strH[e.st]=tabNote(freq(e.m),d,ring,.22,opts);});
-  else if(ev.chord){const ms=tabChordMidis(ev.chord);const d=t-c.currentTime;ms.forEach((m,k)=>pluck(freq(m),d+k*.03,sd*4,.15,{dest:PB.bus}));ms.slice().reverse().slice(0,4).forEach((m,k)=>pluck(freq(m),d+sd*2+k*.02,sd*2,.09,{dest:PB.bus}));}
+  else if(ev.chord){const ms=tabChordMidis(ev.chord);const d=t-c.currentTime;const U=TABDOC.tsi.unit,n=Math.max(1,Math.round(ev.dur/U));
+   for(let q=0;q<n;q++){const dq=d+q*U*sd,ring=(n-q)*U*sd+.3;if(q===0)ms.forEach((m,k)=>pluck(freq(m),dq+k*.028,ring,.15,{dest:PB.bus}));
+    else{const top=ms.slice(-4);(q%2?top.slice().reverse():top).forEach((m,k)=>pluck(freq(m),dq+k*.018,U*sd*1.4,q%2?.07:.09,{dest:PB.bus}));}}}
   setTimeout(()=>{if(PB.playing)tbHighlight(ev);},Math.max(0,(t-c.currentTime)*1000));}
  if(PB.idx>=PB.ev.length&&now>=PB.to){if(S.tbLoop){tbPlayFrom(PB.from,true);}else{tbStop(true);}}
 }
@@ -1812,8 +1819,8 @@ function tbPlayFrom(beat,loopRestart){PB.strH={};
  const c=ac();PB.bus=c.createGain();PB.bus.connect(master);
  const[f,t]=tbScopeRange();PB.from=f;PB.to=t;const start=Math.max(f,Math.min(beat,t));
  PB.ev=TABDOC.timeline.ev.filter(e=>e.beat>=start-1e-6&&e.beat<t-1e-6);PB.idx=0;
- const ci=S.tbCount&&!loopRestart?4:0;PB.startBeat=start-ci;PB.startCtx=c.currentTime+.08;PB.clickNext=Math.ceil(start-ci);
- if(!S.tbCount||loopRestart)PB.clickNext=Math.ceil(start);
+ const TI=TABDOC.tsi;const ci=S.tbCount&&!loopRestart?TI.bb:0;PB.startBeat=start-ci;PB.startCtx=c.currentTime+.08;
+ const rel=((start-f)%TI.unit+TI.unit)%TI.unit;PB.clickNext=start-ci+(rel?TI.unit-rel:0);
  PB.playing=true;clearInterval(PB.timer);PB.timer=setInterval(tbSchedule,25);tbSchedule();
  $('#tb-play').textContent='❚❚';$('#tb-play').setAttribute('aria-label','Pause');
 }
@@ -1831,7 +1838,9 @@ function renderTabs(){
  let tun=autoTun,tunNote='';
  if(S.tbTuning!=='auto'){const t=TU[S.tbTuning];if(t&&t.n.length===nStr)tun=t.n;else tunNote=` (that tuning has ${t?t.n.length:'?'} strings and this tab has ${nStr}, so the tab's own tuning is used)`;}
  const{secs,pre}=buildSections(doc);
- TABDOC={...doc,tun,secs};
+ TABDOC={...doc,tun,secs};const tsUsed=S.tbTS==='auto'?(doc.ts&&TSIGS.includes(doc.ts)?doc.ts:doc.ts||'4/4'):S.tbTS;TABDOC.tsName=tsUsed;TABDOC.tsi=tsInfo(tsUsed);
+ {const sel=$('#tb-ts');sel.innerHTML='';sel.appendChild(el('option',{value:'auto'},`Auto · ${doc.ts||'4/4'}${doc.ts?' (from the tab)':''}`));TSIGS.forEach(x=>sel.appendChild(el('option',{value:x},x)));sel.value=S.tbTS;}
+ $$('#tb-cpb button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.c===S.tbCPB)));
  const autoName=(TUNINGS.find(t=>t.n.join()===autoTun.join())||{}).name||autoTun.map(m=>pretty(midiName(m))).join(' ');
  const sel=$('#tb-tuning');sel.innerHTML='';sel.appendChild(el('option',{value:'auto'},`Auto · ${autoName}`));
  const groups={};TUNINGS.forEach(t=>{(groups[t.g]=groups[t.g]||el('optgroup',{label:t.g})).appendChild(el('option',{value:t.id},t.name));});Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=S.tbTuning;
@@ -1858,10 +1867,14 @@ function renderTabs(){
     mss.forEach((ms,mi)=>{barNo++;nBars++;const myBar=barNo,b0=beat;
      ms.ev.forEach(e=>{e.id='tbn'+(eid++);});
      const cols=[...new Set(ms.ev.map(e=>e.col))].sort((a,b)=>a-b);
-     cols.forEach((col,ci)=>{const evs=ms.ev.filter(e=>e.col===col);const next=cols[ci+1]!=null?cols[ci+1]:ms.b+2;
+     if(S.tbRhythm==='fit'){const BB=TABDOC.tsi.bb;const st0=cols.length&&cols[0]-ms.a<=3?cols[0]:ms.a,W=ms.b-st0+1;
+      cols.forEach((col,ci)=>{const evs=ms.ev.filter(e=>e.col===col);const p0=(col-st0)/W,p1=cols[ci+1]!=null?(cols[ci+1]-st0)/W:1;
+       tl.ev.push({beat:b0+p0*BB,dur:Math.max(.125,(p1-p0)*BB),notes:evs,ids:evs.map(e=>e.id),si,bar:myBar});});
+      beat=b0+BB;}
+     else{cols.forEach((col,ci)=>{const evs=ms.ev.filter(e=>e.col===col);const next=cols[ci+1]!=null?cols[ci+1]:ms.b+2;
       const dur=S.tbRhythm==='even'?.5:Math.min(8,Math.max(1,next-col))/4;
       tl.ev.push({beat,dur,notes:evs,ids:evs.map(e=>e.id),si,bar:myBar});beat+=dur;});
-     if(!cols.length)beat+=1;
+     if(!cols.length)beat+=1;}
      const m=el('div',{class:'tb-meas',title:`Bar ${myBar}: tap to play from here`},measureSVG(ms,tun,myBar,mi===0));
      m.onclick=()=>{tbPlayFrom(b0);};wrap.appendChild(m);});});
    card.appendChild(wrap);}
@@ -1870,7 +1883,7 @@ function renderTabs(){
    sec.sheet.forEach(line=>{const bars=el('div',{class:'tb-bars'});
     line.toks.filter(k=>k.p).forEach((k,ci)=>{addUsed(k.c);nCh++;const id='tbc'+(eid++);const b0=sec.tabs.length?null:beat;
      const btn=el('button',{class:'tb-cbar',id,'data-pop':k.c,'data-popctx':'tab'},esc(pretty(k.c)));btn.onclick=()=>{if(b0!=null)tbPlayFrom(b0);else strum(tabChordMidis(k.c));};bars.appendChild(btn);
-     if(!sec.tabs.length){tl.ev.push({beat,dur:4,chord:k.c,ids:[id],si,ci:nCh-1});beat+=4;}});
+     if(!sec.tabs.length){const D=TABDOC.tsi.bb*S.tbCPB;tl.ev.push({beat,dur:D,chord:k.c,ids:[id],si,ci:nCh-1});beat+=D;}});
     sh.appendChild(bars);
     if(S.tbLyr&&line.lyr!=null){let h='',last=0;line.toks.forEach(k=>{h+=esc(line.raw.slice(last,k.i));h+=k.p?`<button class="cc" data-ch="${esc(k.c)}" data-pop="${esc(k.c)}" data-popctx="tab">${esc(pretty(k.t))}</button>`:esc(k.t);last=k.i+k.t.length;});
      sh.appendChild(el('pre',{class:'tb-pre'},h));sh.appendChild(el('pre',{class:'tb-pre lyr'},esc(line.lyr)));}});
@@ -1892,7 +1905,7 @@ function renderTabs(){
  const info=$('#tb-info');info.innerHTML='';
  const curName=(TUNINGS.find(t=>t.n.join()===tun.join())||{}).name||tun.map(m=>pretty(midiName(m))).join(' ');
  const totalS=Math.round(tl.total*60/S.tbBpm);
- info.appendChild(el('div',{},`<h2>${esc(doc.title||(tabText?tabSrc:'Example song'))}</h2><p class="empty">Tuning: <b>${curName}</b>${tunNote} · ${secs.length} sections · ${barNo} bars of tab · about ${Math.floor(totalS/60)}:${String(totalS%60).padStart(2,'0')} at ${S.tbBpm} BPM</p>`));
+ info.appendChild(el('div',{},`<h2>${esc(doc.title||(tabText?tabSrc:'Example song'))}</h2><p class="empty">Tuning: <b>${curName}</b>${tunNote} · Time: <b>${TABDOC.tsName}</b> · ${secs.length} sections · ${barNo} bars of tab · about ${Math.floor(totalS/60)}:${String(totalS%60).padStart(2,'0')} at ${S.tbBpm} BPM</p>`));
  {const T=TABDOC.techs,L=[['slide','╱','Slide: keep the finger pressed and slide along the string, fret by fret, to the next note (pick only the first)'],['sin','╱','Slide in from below or above'],['h','H','Hammer-on: second note without picking'],['p','P','Pull-off: second note without picking'],['bend','↑','Bend: ½ = one fret, full = two frets'],['rel','r','Release the bend back down'],['vib','∿','Vibrato: shake the note'],['dead','×','Dead note: muted, percussive'],['trem','≡','Tremolo picking: fast repeated picks']].filter(x=>T[x[0]]);
   if(L.length){info.appendChild(el('h3',{},'Techniques in this tab'));info.appendChild(el('div',{class:'tb-legend'},L.map(x=>`<span><b>${x[1]}</b>${x[2]} (${T[x[0]]})</span>`).join('')));}}
  if(used.length){info.appendChild(el('h3',{},'Chords in this song · tap to hear'));const g=el('div',{class:'grid-v'});
@@ -1903,7 +1916,7 @@ function renderTabs(){
    b.onclick=()=>{if(v)strum(v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null));};g.appendChild(b);});
   info.appendChild(g);}
 }
-const tabLoad=(txt,name)=>{tabText=txt;tabSrc=name;try{localStorage.setItem('fretwise-tab',tabText);localStorage.setItem('fretwise-tabsrc',tabSrc);}catch(err){}S.tbTuning='auto';S.tbScope='all';save();renderTabs();};
+const tabLoad=(txt,name)=>{tabText=txt;tabSrc=name;try{localStorage.setItem('fretwise-tab',tabText);localStorage.setItem('fretwise-tabsrc',tabSrc);}catch(err){}S.tbTuning='auto';S.tbTS='auto';S.tbScope='all';save();renderTabs();};
 $('#tb-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>tabLoad(String(r.result),f.name);r.readAsText(f);e.target.value='';};
 $('#tb-pastebtn').onclick=()=>{const b=$('#tb-pastebox');b.hidden=!b.hidden;if(!b.hidden)$('#tb-paste').focus();};
 $('#tb-pasteok').onclick=()=>{const v=$('#tb-paste').value;if(!v.trim())return;$('#tb-pastebox').hidden=true;tabLoad(v,'pasted tab');};
@@ -1917,6 +1930,8 @@ $('#tb-more').onclick=()=>{const r=$('#tb-moreRow');r.hidden=!r.hidden;$('#tb-mo
 $('#tb-bpm').onchange=e=>setTbBpm(e.target.value);$('#tb-bpm-r').oninput=e=>setTbBpm(e.target.value);
 $$('#tb-rhythm button').forEach(b=>b.onclick=()=>{S.tbRhythm=b.dataset.r;save();renderTabs();});
 $('#tb-tuning').onchange=e=>{S.tbTuning=e.target.value;save();renderTabs();};
+$('#tb-ts').onchange=e=>{S.tbTS=e.target.value;save();renderTabs();};
+$$('#tb-cpb button').forEach(b=>b.onclick=()=>{S.tbCPB=+b.dataset.c;save();renderTabs();});
 $('#tb-lyr').onchange=e=>{S.tbLyr=e.target.checked;save();renderTabs();};
 
 /* ---------- chord pop-up on hover / tap ---------- */
