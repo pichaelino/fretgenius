@@ -2016,7 +2016,11 @@ $('#sgf-play').onclick=()=>$('#sg-play').click();
 const sgfBpm=d=>{S.bpm=Math.max(40,Math.min(220,S.bpm+d));$('#sg-bpm').value=S.bpm;save();sgfSync();};
 $('#sgf-dn').onclick=()=>sgfBpm(-5);$('#sgf-up').onclick=()=>sgfBpm(5);
 $('#sg-bpm').addEventListener('input',()=>setTimeout(sgfSync,0));
-if('IntersectionObserver' in window){new IntersectionObserver(es=>{const e=es[0];const f=$('#sg-float');const show=!e.isIntersecting&&e.boundingClientRect.top<0&&curChords().filter(Boolean).length>0;sgfPos();f.classList.toggle('on',show);f.setAttribute('aria-hidden',String(!show));},{threshold:0}).observe($('#sg-play'));}
+function sgfCheck(){const f=$('#sg-float'),v=$('#v-song');if(!f)return;let show=false;
+ if(v&&!v.hidden&&v.offsetParent!==null){const r=$('#sg-play').getBoundingClientRect();show=r.bottom<4&&curChords().filter(Boolean).length>0;}
+ if(show)sgfPos();f.classList.toggle('on',show);f.setAttribute('aria-hidden',String(!show));}
+let sgfRaf=0;const sgfQ=()=>{if(sgfRaf)return;sgfRaf=requestAnimationFrame(()=>{sgfRaf=0;sgfCheck();});};
+document.addEventListener('scroll',sgfQ,{capture:true,passive:true});window.addEventListener('scroll',sgfQ,{passive:true});window.addEventListener('resize',sgfQ);window.addEventListener('hashchange',sgfQ);setInterval(sgfCheck,700);
 window.addEventListener('resize',sgfPos);sgfSync();
 $('#sg-play').onclick=()=>{
  if(playTimer){stopPlay();return;}
