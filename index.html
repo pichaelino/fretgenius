@@ -78,9 +78,7 @@ button,select,input{font:inherit;color:inherit}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding-block:10px}
 .lang-sw button{padding:6px 9px;font-size:12px;white-space:nowrap}
-@media (min-width:761px) and (max-width:1460px){header.top nav.tabs button svg{display:none}}
 @media (min-width:761px) and (max-width:1560px){#hdr-a4{display:none}}
-@media (min-width:761px) and (max-width:1200px){header.top nav.tabs button{padding:9px 7px}}
 @media (max-width:760px){.lang-sw{margin-left:auto}}
 @media (max-width:460px){#hdr-a4{display:none}}
 .brand{display:flex;align-items:baseline;gap:10px}
@@ -113,7 +111,7 @@ nav.tabs button[aria-current="page"]{color:var(--on-accent);background:var(--acc
 @media (max-width:760px){
   header.top nav.tabs{display:none}
   .bottom-nav{display:block;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(0,0,0,.08);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-  .bottom-nav nav.tabs{margin:0;flex-wrap:nowrap;gap:0;display:grid;grid-template-columns:repeat(7,1fr);padding:6px 1px}
+  .bottom-nav nav.tabs{margin:0;flex-wrap:nowrap;gap:0;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 1px}
   .bottom-nav nav.tabs button{flex-direction:column;gap:4px;padding:8px 2px;font-size:11px;border-radius:8px;min-height:54px;justify-content:center}
   .bottom-nav nav.tabs button svg{width:22px;height:22px}
   .bottom-nav nav.tabs button .l{display:none}
@@ -123,6 +121,42 @@ nav.tabs button[aria-current="page"]{color:var(--on-accent);background:var(--acc
 }
 
 main{padding-block:24px 64px}
+/* ---- modern nav ---- */
+header.top .wrap{flex-wrap:nowrap}
+header.top nav.tabs{order:2;margin:0 auto;flex-wrap:nowrap;gap:2px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--surface-2) 70%,transparent);border:1px solid var(--line)}
+header.top .lang-sw{order:3}header.top .theme-tg{order:4}
+header.top nav.tabs button{border-radius:999px;padding:9px 15px;gap:7px;font-size:13.5px;white-space:nowrap;transition:background .18s,color .18s,box-shadow .18s}
+header.top nav.tabs button .ic{display:flex}
+header.top nav.tabs button[aria-current="page"]{box-shadow:0 4px 16px color-mix(in srgb,var(--accent) 45%,transparent)}
+@media (min-width:761px) and (max-width:1100px){header.top nav.tabs button .ic{display:none}header.top nav.tabs button{padding:9px 11px}#hdr-a4{display:none}}
+@media (min-width:761px) and (max-width:900px){header.top nav.tabs button{padding:8px 8px;font-size:12.5px}.brand b{font-size:22px}}
+@media (max-width:760px){
+  header.top .wrap{flex-wrap:wrap}
+  .bottom-nav{left:10px!important;right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;padding:0!important;border:1px solid var(--line)!important;border-radius:24px;background:color-mix(in srgb,var(--surface) 86%,transparent)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);box-shadow:0 12px 34px rgba(0,0,0,.4)!important}
+  .bottom-nav nav.tabs{padding:6px 4px!important}
+  .bottom-nav nav.tabs button{min-height:58px!important;gap:3px!important;background:transparent!important;color:var(--muted)!important;font-weight:600}
+  .bottom-nav nav.tabs button .ic{display:flex;align-items:center;justify-content:center;width:52px;height:30px;border-radius:999px;transition:background .2s,color .2s}
+  .bottom-nav nav.tabs button[aria-current="page"]{color:var(--ink)!important}
+  .bottom-nav nav.tabs button[aria-current="page"] .ic{background:var(--accent);color:var(--on-accent);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 45%,transparent)}
+  main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))!important}
+}
+/* ---- song neck pinned ---- */
+@media (min-width:761px){
+  html.neck-pin #sg-neck{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:8px 18px;align-items:center;padding:12px 16px}
+  html.neck-pin #sg-neck>.sgn-head{grid-column:1/-1}
+  html.neck-pin #sg-neck>.sgn-now{grid-column:1;flex-direction:column;align-items:flex-start;gap:10px}
+  html.neck-pin #sg-neck>.board-wrap{grid-column:2;margin:0}
+  html.neck-pin #sg-neck>details.help,html.neck-pin #sg-neck>p{grid-column:1/-1}
+  html.neck-pin #sg-neck>details.help{display:none}
+  html.neck-pin #sg-neck .board-wrap svg{max-height:230px}
+}
+html.neck-pin #sg-neck{position:sticky;top:calc(var(--hdr-h,60px) + env(safe-area-inset-top,0px) + 6px);z-index:4;box-shadow:0 12px 28px rgba(0,0,0,.4)}
+@media (max-width:760px){
+  html.neck-pin #sg-neck{padding:10px 12px}
+  html.neck-pin #sg-neck .sgn-head h3,html.neck-pin #sg-neck details.help{display:none}
+  html.neck-pin #sg-neck .sgn-name{font-size:30px}
+  html.neck-pin #sg-neck .sgn-now{gap:16px}
+}
 .view{display:flex;flex-direction:column;gap:18px}
 .view[hidden]{display:none}
 h1,h2,h3{text-wrap:balance;margin:0}
@@ -442,6 +476,14 @@ svg .seg-o:hover,svg .seg-i:hover{filter:brightness(.96)}
 svg .ct{fill:var(--ink);font:700 18px var(--f-body);pointer-events:none}
 svg .ct.min{font-size:13px;font-weight:600}
 svg .ct.on{fill:var(--on-accent)}
+svg .cdot{fill:var(--root);stroke:var(--surface);stroke-width:2;pointer-events:none}
+svg .ckey{fill:none;stroke:var(--root);stroke-width:4;pointer-events:none}
+.sgc-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}.sgc-head h3{margin:0}
+.sgc-sub{color:var(--muted);font-size:14px}
+.sgc-leg{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12.5px;color:var(--muted);margin-top:6px}
+.sgc-leg i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.sgc-leg i.k{border:3px solid var(--root);border-radius:3px}.sgc-leg i.f{background:var(--accent-soft);border-radius:3px}.sgc-leg i.d{background:var(--root)}
+.sg-circle details.help .explain{margin-top:6px}
 svg .cs{fill:var(--muted);font:500 10px var(--f-mono);pointer-events:none}
 svg .core{fill:var(--surface)}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
@@ -512,11 +554,9 @@ svg .mtog.muted text{fill:var(--bad)}
  ['explore','Fretboard','Neck','<path d="M3 7h18M3 12h18M3 17h18M8 5v14M14 5v14"/>'],
  ['finder','Chord Finder','Finder','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],
  ['keys','Chord Shapes','Shapes','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'],
- ['tuner','Tuner','Tuner','<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-6"/>'],
- ['circle','Circle of Fifths','Circle','<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/>'],
- ['tabs','Tab Player','Tabs','<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="14" r="1.6"/>'],
- ['song','Song Builder','Song','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>']];
- ['nav-top','nav-bottom'].forEach(id=>{document.getElementById(id).innerHTML=items.map(([v,l,s,ic])=>`<button type="button" data-v="${v}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg><span class="l">${l}${v==='tabs'?' <span class="beta">BETA</span>':''}</span><span class="s">${s}${v==='tabs'?'<span class="beta">β</span>':''}</span></button>`).join('');});})();
+ ['song','Song Builder','Song','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'],
+ ['tabs','Tab Player','Tabs','<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="14" r="1.6"/>']];
+ ['nav-top','nav-bottom'].forEach(id=>{document.getElementById(id).innerHTML=items.map(([v,l,s,ic])=>`<button type="button" data-v="${v}"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span><span class="l">${l}${v==='tabs'?' <span class="beta">BETA</span>':''}</span><span class="s">${s}${v==='tabs'?'<span class="beta">β</span>':''}</span></button>`).join('');});})();
 </script>
 
 <main class="wrap">
@@ -690,29 +730,6 @@ svg .mtog.muted text{fill:var(--bad)}
 </section>
 
 <!-- CIRCLE OF FIFTHS -->
-<section class="view" id="v-circle" hidden>
-  <div class="head">
-    <h1 class="vt">Circle of fifths</h1>
-    <p class="lede">The twelve keys arranged so each neighbour is a fifth apart. Tap a key to see its signature, its chords and its closest relatives.</p>
-  </div>
-  <div class="cgrid">
-    <div class="panel"><svg class="circle" id="circle-svg" viewBox="0 0 520 520" aria-label="Circle of fifths"></svg></div>
-    <div class="panel" id="circle-panel"></div>
-  </div>
-  <div class="panel">
-    <h2>How the circle works</h2>
-    <div class="explain">
-      <article><h4>Reading it</h4><p>Go clockwise and every step goes up a perfect fifth (seven frets): <span data-n="C">C</span>, <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and on around. Go counter-clockwise and each step goes up a fourth instead. After twelve steps you are back at <span data-n="C">C</span>, which is why it closes into a circle.</p></article>
-      <article><h4>Sharps and flats</h4><p>Each clockwise step adds one sharp to the key signature, and each counter-clockwise step adds one flat. <span data-n="G">G</span> has one sharp, <span data-n="D">D</span> has two, <span data-n="F">F</span> has one flat, <span data-n="Bb">B♭</span> has two. At the bottom, <span data-n="F#">F♯</span> and <span data-n="Gb">G♭</span> are the same notes with different names.</p></article>
-      <article><h4>Relative minors</h4><p>The inner ring shows the minor key that shares the same notes as the major key beside it. <span data-n="A">A</span> minor and <span data-n="C">C</span> major use exactly the same seven notes; the difference is which note feels like home. The relative minor always sits three frets below the major.</p></article>
-      <article><h4>Building progressions</h4><p>The selected key and its two neighbours give you the six most useful chords: I, IV and V on the outside, and ii, iii and vi on the inside. Almost every pop, rock and folk song in that key lives in this little wedge, plus the diminished vii°.</p></article>
-      <article><h4>Changing key</h4><p>Keys next to each other share six of their seven notes, so moving one step around the circle is the smoothest key change. Jumping across the circle (<span data-n="C">C</span> to <span data-n="F#">F♯</span>) sounds dramatic because the keys share almost nothing.</p></article>
-      <article><h4>Hearing the pull</h4><p>Chord movement counter-clockwise (<span data-n="G">G</span> to <span data-n="C">C</span>, <span data-n="D">D</span> to <span data-n="G">G</span>) is the strongest resolution in music: the V–I cadence. Chains like <span data-n="E7">E7</span>–<span data-n="A7">A7</span>–<span data-n="D7">D7</span>–<span data-n="G7">G7</span>–<span data-n="C">C</span> walk counter-clockwise around the circle and are the backbone of jazz and ragtime.</p></article>
-      <article><h4>On the guitar</h4><p>Guitar-friendly keys cluster at the top right: <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and <span data-n="E">E</span>, with their open strings. A capo shifts everything up the circle's chromatic order, so you can play <span data-n="G">G</span> shapes and sound in <span data-n="A">A</span> with the capo at fret 2.</p></article>
-      <article><h4>Spotting borrowed chords</h4><p>Chords from one step counter-clockwise plus the parallel minor (♭VII, ♭VI, iv) are the classic "borrowed" colours in rock. The Song Builder flags them for you.</p></article>
-    </div>
-  </div>
-</section>
 
 <!-- SONG BUILDER -->
 <section class="view" id="v-song" hidden>
@@ -757,6 +774,27 @@ svg .mtog.muted text{fill:var(--bad)}
       <div class="panel" id="sg-scales"></div>
       <div class="panel" id="sg-templates"></div>
     </div>
+  </div>
+  <div class="panel sg-circle" id="sg-circle">
+    <div class="sgc-head"><h3>Circle of fifths</h3><span class="sgc-sub" id="sgc-sub"></span></div>
+    <div class="cgrid">
+      <div><svg class="circle" id="circle-svg" viewBox="0 0 520 520" aria-label="Circle of fifths"></svg>
+        <div class="sgc-leg"><span><i class="k"></i>Key of the song</span><span><i class="f"></i>Its closest chords</span><span><i class="d"></i>Chords in your song</span></div></div>
+      <div id="circle-panel"></div>
+    </div>
+    <details class="help"><summary>How the circle works</summary><div class="help-body">
+    <div class="explain">
+      <article><h4>Reading it</h4><p>Go clockwise and every step goes up a perfect fifth (seven frets): <span data-n="C">C</span>, <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and on around. Go counter-clockwise and each step goes up a fourth instead. After twelve steps you are back at <span data-n="C">C</span>, which is why it closes into a circle.</p></article>
+      <article><h4>Sharps and flats</h4><p>Each clockwise step adds one sharp to the key signature, and each counter-clockwise step adds one flat. <span data-n="G">G</span> has one sharp, <span data-n="D">D</span> has two, <span data-n="F">F</span> has one flat, <span data-n="Bb">B♭</span> has two. At the bottom, <span data-n="F#">F♯</span> and <span data-n="Gb">G♭</span> are the same notes with different names.</p></article>
+      <article><h4>Relative minors</h4><p>The inner ring shows the minor key that shares the same notes as the major key beside it. <span data-n="A">A</span> minor and <span data-n="C">C</span> major use exactly the same seven notes; the difference is which note feels like home. The relative minor always sits three frets below the major.</p></article>
+      <article><h4>Building progressions</h4><p>The selected key and its two neighbours give you the six most useful chords: I, IV and V on the outside, and ii, iii and vi on the inside. Almost every pop, rock and folk song in that key lives in this little wedge, plus the diminished vii°.</p></article>
+      <article><h4>Changing key</h4><p>Keys next to each other share six of their seven notes, so moving one step around the circle is the smoothest key change. Jumping across the circle (<span data-n="C">C</span> to <span data-n="F#">F♯</span>) sounds dramatic because the keys share almost nothing.</p></article>
+      <article><h4>Hearing the pull</h4><p>Chord movement counter-clockwise (<span data-n="G">G</span> to <span data-n="C">C</span>, <span data-n="D">D</span> to <span data-n="G">G</span>) is the strongest resolution in music: the V–I cadence. Chains like <span data-n="E7">E7</span>–<span data-n="A7">A7</span>–<span data-n="D7">D7</span>–<span data-n="G7">G7</span>–<span data-n="C">C</span> walk counter-clockwise around the circle and are the backbone of jazz and ragtime.</p></article>
+      <article><h4>On the guitar</h4><p>Guitar-friendly keys cluster at the top right: <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and <span data-n="E">E</span>, with their open strings. A capo shifts everything up the circle's chromatic order, so you can play <span data-n="G">G</span> shapes and sound in <span data-n="A">A</span> with the capo at fret 2.</p></article>
+      <article><h4>Spotting borrowed chords</h4><p>Chords from one step counter-clockwise plus the parallel minor (♭VII, ♭VI, iv) are the classic "borrowed" colours in rock. The Song Builder flags them for you.</p></article>
+    </div>
+  
+    </div></details>
   </div>
 </section>
 </main>
@@ -1665,6 +1703,8 @@ const SHARPS=['F#','C#','G#','D#','A#','E#'],FLATS=['Bb','Eb','Ab','Db','Gb','Cb
 function arcPath(cx,cy,r1,r2,a1,a2){const p=(r,a)=>[cx+r*Math.sin(a),cy-r*Math.cos(a)];const[x1,y1]=p(r2,a1),[x2,y2]=p(r2,a2),[x3,y3]=p(r1,a2),[x4,y4]=p(r1,a1);return`M${x1} ${y1}A${r2} ${r2} 0 0 1 ${x2} ${y2}L${x3} ${y3}A${r1} ${r1} 0 0 0 ${x4} ${y4}Z`;}
 function renderCircle(){
  const cx=260,cy=260,sel=S.circle.i;const fam=new Set([(sel+11)%12,sel,(sel+1)%12]);let s='';
+ const inO=new Set(),inI=new Set();(SGC.chords||[]).forEach(c=>{if(c.type==='dim'||c.type==='dim7'||c.type==='m7b5')return;if(isMinorish(c)){const k=C_MIN.findIndex(n=>pcOf(n)===c.pc);if(k>=0)inI.add(k);}else{const k=C_MAJ.findIndex(n=>pcOf(n)===c.pc);if(k>=0)inO.add(k);}});
+ const SK=SGC.key;const kI=SK?(SK.mode==='minor'?C_MIN:C_MAJ).findIndex(n=>pcOf(n)===SK.t):-1,kMin=SK&&SK.mode==='minor';
  for(let i=0;i<12;i++){const a1=(i-.5)*Math.PI/6,a2=(i+.5)*Math.PI/6,am=i*Math.PI/6;
   const oSel=!S.circle.minor&&i===sel,iSel=S.circle.minor&&i===sel;
   s+=`<path class="seg-o${oSel?' sel':fam.has(i)?' fam':''}" data-i="${i}" data-min="0" d="${arcPath(cx,cy,170,250,a1,a2)}"></path>`;
@@ -1672,6 +1712,9 @@ function renderCircle(){
   const lo=i===6?pretty('F#/Gb'):pretty(C_MAJ[i]),li=isIt()?(i===6?pretty('D#/Eb'):pretty(C_MIN[i]))+'m':(i===6?'d♯/e♭':pretty(C_MIN[i]).toLowerCase())+'m';
   s+=`<text class="ct${oSel?' on':''}" x="${cx+212*Math.sin(am)}" y="${cy-212*Math.cos(am)+6}" text-anchor="middle">${lo}</text>`;
   s+=`<text class="ct min${iSel?' on':''}" x="${cx+139*Math.sin(am)}" y="${cy-139*Math.cos(am)+5}" text-anchor="middle">${li.replace('mm','m')}</text>`;
+  if(inO.has(i))s+=`<circle class="cdot" cx="${cx+238*Math.sin(am)}" cy="${cy-238*Math.cos(am)}" r="6"></circle>`;
+  if(inI.has(i))s+=`<circle class="cdot" cx="${cx+160*Math.sin(am)}" cy="${cy-160*Math.cos(am)}" r="5"></circle>`;
+  if(i===kI)s+=`<path class="ckey" d="${arcPath(cx,cy,kMin?108:170,kMin?170:250,(i-.5)*Math.PI/6,(i+.5)*Math.PI/6)}"></path>`;
   const sig=i===0?'0':i<=6?i+'♯':(12-i)+'♭';
   s+=`<text class="cs" x="${cx+92*Math.sin(am)}" y="${cy-92*Math.cos(am)+4}" text-anchor="middle">${sig}</text>`;}
  s+=`<circle class="core" cx="${cx}" cy="${cy}" r="72"></circle><text class="ct" x="${cx}" y="${cy-2}" text-anchor="middle">${S.circle.minor?pretty(C_MIN[sel])+' minor':pretty(C_MAJ[sel])+' major'}</text><text class="cs" x="${cx}" y="${cy+18}" text-anchor="middle">tap any key</text>`;
@@ -1683,6 +1726,7 @@ function renderCircle(){
  const dia=diatonic(key,false);
  const p=$('#circle-panel');p.innerHTML='';
  p.appendChild(el('h2',{style:'font:800 34px/1 var(--f-display)'},`${pretty(key.name)} ${key.mode}`));
+ {const SK=SGC.key;$('#sgc-sub').textContent=SK?`Your song is in ${pretty(SK.name)} ${SK.mode}`:'Add chords to see your song here';}
  const dl=el('dl',{class:'kv'});
  const add=(k,v)=>{dl.appendChild(el('dt',{},k));dl.appendChild(el('dd',{},v));};
  add('Key signature',i===0?'No sharps or flats':`${sigN} ${i<=6?'sharp':'flat'}${sigN>1?'s':''}: ${acc}`);
@@ -1691,11 +1735,14 @@ function renderCircle(){
  add('Scale',dia.map(d=>pretty(d.name.replace(/(m|dim)$/,''))).join(' '));
  if(i===6)add('Enharmonic',minor?'Same as E♭ minor (6 flats)':'Same as G♭ major (6 flats)');
  p.appendChild(dl);
- p.appendChild(el('h3',{},'Chords in this key · tap to hear'));
- const box=el('div',{class:'dchords'});dia.forEach(d=>box.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-popctx':'any',onclick:()=>strum(bestVoicingMidis(d.pc,d.type,TU.std.n))},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));p.appendChild(box);
- p.appendChild(el('p',{class:'empty'},minor?'In minor keys the v chord is often played major (V) to create a stronger pull back to i, borrowed from harmonic minor.':'The I, IV and V chords are your three majors; ii, iii and vi are their minor partners on the inner ring.'));
- const row=el('div',{class:'row'});
- row.appendChild(el('button',{class:'btn',onclick:()=>{loadTemplate(minor?TPL_MIN[1]:TPL_MAJ[0],key);go('song');}},'Start a song in this key'));
+ p.appendChild(el('h3',{},'Chords in this key · tap to add to your song'));
+ const box=el('div',{class:'dchords'});dia.forEach(d=>box.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-popctx':'any',onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));p.appendChild(box);
+ p.appendChild(helpBox('Tip',minor?'In minor keys the v chord is often played major (V) to create a stronger pull back to i, borrowed from harmonic minor.':'The I, IV and V chords are your three majors; ii, iii and vi are their minor partners on the inner ring.','circle-tip'));
+ const row=el('div',{class:'row'});const tonic=minor?minName+'m':majName;
+ row.appendChild(el('button',{class:'btn',onclick:()=>addChord(tonic)},`+ Add ${pretty(tonic)}`));
+ const isSong=SK&&SK.t===key.t&&SK.mode===key.mode;
+ if(!isSong)row.appendChild(el('button',{class:'btn ghost',onclick:()=>{S.forced={t:key.t,mode:key.mode};save();renderSong();}},'Use as song key'));
+ else if(S.forced)row.appendChild(el('button',{class:'btn ghost',onclick:()=>{S.forced=null;save();renderSong();}},'Back to detected key'));
  row.appendChild(el('button',{class:'btn ghost',onclick:()=>{S.root=key.name;S.kind='scales';S.item.scales=minor?'natmin':'major';save();go('explore');}},'Show scale on fretboard'));
  p.appendChild(row);
 }
@@ -1892,7 +1939,11 @@ function renderSong(){
   const names=tp.c.map(([rel,ty])=>pretty(spellIv(kn,REL_LBL[rel])+CH[ty].sym));
   tl.appendChild(el('button',{class:'tpl',onclick:()=>loadTemplate(tp,key)},`<span><b>${tp.name}</b> <small>${tp.f}</small></span><small class="tpl-ch">${tp.c.length>8?[...new Set(names)].join(' '):names.join(' – ')}</small>`));});tbox.appendChild(tl);
  tbox.appendChild(el('p',{class:'empty'},'Minor progressions use the relative minor of your key, and the other way round. Loading one replaces your current chords.'));
+ SGC.chords=valid;SGC.key=valid.length?key:null;
+ if(valid.length){const ci=key.mode==='minor'?C_MIN.findIndex(n=>pcOf(n)===key.t):C_MAJ.findIndex(n=>pcOf(n)===key.t);if(ci>=0)S.circle={i:ci,minor:key.mode==='minor'};}
+ renderCircle();
 }
+const SGC={chords:[],key:null};
 function addChord(name){S.song=(S.song.trim()+' '+nameIn(name)).trim();S.songIsSample=false;save();renderSong();strum(bestVoicingMidis(parseChord(name).pc,parseChord(name).type,songTuning()));}
 function songTuning(){const t=tuning();return t.length>=6&&t.length<=7?t:TU.std.n;}
 const songShapeIdx=new Map(),songVCache=new Map();
@@ -2035,7 +2086,7 @@ let sgSoftT=null;
 function stopPlay(){clearTimeout(playTimer);clearTimeout(sgSoftT);playTimer=null;setTimeout(()=>renderSongNeck(sgNeckIdx),0);$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';sgfSync();}
 function sgfSync(){const b=$('#sgf-play');if(b)b.textContent=playTimer?'■ Stop':'▶ Play';$('#sgf-bpm').textContent=S.bpm;if(!playTimer)sgfNow();}
 function sgfNow(c,n){const x=$('#sgf-now');if(!x)return;if(!c){const ch=curChords().filter(Boolean);x.innerHTML=ch.length?`${ch.length} chords`:'';return;}x.innerHTML=`${chordLabel(c)}${n&&n!==c?` <small>→ ${chordLabel(n)}</small>`:''}`;}
-function sgfPos(){const f=$('#sg-float'),bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?bn.offsetHeight:0;f.style.bottom=(h+12)+'px';}
+function sgfPos(){const f=$('#sg-float'),bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?window.innerHeight-bn.getBoundingClientRect().top:0;f.style.bottom=(h+10)+'px';}
 $('#sgf-play').onclick=()=>$('#sg-play').click();
 const sgfBpm=d=>{S.bpm=Math.max(40,Math.min(220,S.bpm+d));$('#sg-bpm').value=S.bpm;save();sgfSync();};
 $('#sgf-dn').onclick=()=>sgfBpm(-5);$('#sgf-up').onclick=()=>sgfBpm(5);
@@ -2621,18 +2672,18 @@ $$('#lang-sw button').forEach(b=>b.onclick=()=>{if(S.lang===b.dataset.lang)retur
 applyLang();
 
 /* ---------- routing ---------- (go is declared early so other tools can call it) */
-const VIEWS=['explore','finder','keys','tabs','tuner','circle','song'];
-function show(v){if(!VIEWS.includes(v))v='explore';S.view=v;save();
+const VIEWS=['explore','finder','keys','tabs','tuner','song'];
+function show(v){if(v==='circle'){v='song';setTimeout(()=>{const c=$('#sg-circle');c&&c.scrollIntoView({behavior:'smooth',block:'start'});},80);}if(!VIEWS.includes(v))v='explore';S.view=v;save();
  VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;});
  $$('[data-v]').forEach(b=>{if(b.dataset.v===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  if(v!=='song'&&playTimer)stopPlay();if(v!=='explore'){if(JAM.on)jamStop();seqStop();}
- if(v==='explore')renderExplorer();if(v==='finder')renderFinder();if(v==='keys')renderKeys();if(v==='tuner')renderTuner();if(v==='circle')renderCircle();if(v==='song')renderSong();if(v==='tabs')renderTabs();if(v!=='tabs'&&PB.playing)tbPause();
+ if(v==='explore')renderExplorer();if(v==='finder')renderFinder();if(v==='keys')renderKeys();if(v==='tuner')renderTuner();if(v==='song')renderSong();if(v==='tabs')renderTabs();if(v!=='tabs'&&PB.playing)tbPause();
  try{window.scrollTo(0,0);}catch(e){}nutScroll();}
 go=v=>{show(v);try{if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);}catch(e){}};
 $$('[data-v]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();go(b.dataset.v);}));
-window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(VIEWS.includes(v)&&v!==S.view)show(v);});
+window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if((VIEWS.includes(v)&&v!==S.view)||v==='circle')show(v);});
 fillTuningSelects();renderTuner();
-{const h=location.hash.replace('#','');show(VIEWS.includes(h)?h:S.view);}
+{const h=location.hash.replace('#','');show(VIEWS.includes(h)||h==='circle'?h:(S.view==='circle'?'song':S.view));}
 window.__fw={get TABDOC(){return TABDOC},parseChord,detectKey,classify,voicings,diatonic,respell,identify};
 })();
 </script>
