@@ -173,6 +173,9 @@ select option,select optgroup{background:var(--surface);color:var(--ink)}
 
 .board-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 6px}
 .board-wrap svg{display:block;min-width:820px;width:100%;height:auto}
+html.neck-fit .board-wrap svg,html.neck-fit #ex-board svg,html.neck-fit #fd-board svg{min-width:0!important}
+html.neck-pin #ex-board,html.neck-pin #fd-board{position:sticky;top:calc(var(--hdr-h,60px) + env(safe-area-inset-top,0px) + 6px);z-index:4;box-shadow:0 10px 24px rgba(0,0,0,.35)}
+.box-sel{min-width:0;max-width:62vw}
 #ex-board svg{min-width:1340px}
 svg .tline.run{stroke:var(--accent);stroke-width:3.5;opacity:.85}
 svg .boxr{fill:var(--accent);fill-opacity:.07;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 4}
@@ -1040,7 +1043,10 @@ function diagramSVG0(v,tun,rootPc){
 }
 
 /* ---------- fretboard ---------- */
-const EXF=23;
+const FRETS=[[21,'21 · Fender classic (Strat, Tele) · standard'],[22,'22 · Fender modern, Gibson Les Paul'],[24,'24 · Ibanez, Jackson, PRS (shred)'],[20,'20 · Acoustic (dreadnought)'],[19,'19 · Classical (nylon)']];
+if(!FRETS.some(x=>x[0]===S.frets))S.frets=21;
+let EXF=S.frets;
+if(S.pin==null)S.pin=true;if(S.fit==null)S.fit=window.innerWidth>=1000;
 function scaleBoxes(rootPc,it,tun){
  const EXTRA={blues:['b5'],majblues:['b3'],bebop:['7']};
  const extra=EXTRA[it.id]||[];const base=it.f.filter(l=>!extra.includes(l));
@@ -1156,7 +1162,16 @@ function neckBar(sel){const box=$(sel);if(!box)return;box.innerHTML='';
  const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.lefty;cb.onchange=()=>{S.lefty=cb.checked;save();rerenderView();nutScroll();};
  lab.append(cb,document.createTextNode('Left-handed'));box.appendChild(lab);
  const wg=el('span',{class:'row',style:'gap:6px'});wg.appendChild(el('span',{class:'lbl'},'Fretboard '+tipBtn('wood')));const ws=el('select',{'aria-label':'Fretboard colour'});WOODS.forEach(([v,l])=>ws.appendChild(el('option',{value:v},l)));ws.value=S.wood;ws.onchange=()=>{S.wood=ws.value;save();applyTheme();};wg.appendChild(ws);box.appendChild(wg);
+ const fg=el('span',{class:'row',style:'gap:6px'});fg.appendChild(el('span',{class:'lbl'},'Frets '+tipBtn('frets')));const fs=el('select',{'aria-label':'Number of frets'});FRETS.forEach(([v,l])=>fs.appendChild(el('option',{value:String(v)},l)));fs.value=String(S.frets);fs.onchange=()=>{S.frets=+fs.value;EXF=S.frets;S.selMidi=null;save();rerenderView();};fg.appendChild(fs);box.appendChild(fg);
+ const opt=(lbl,k,fn)=>{const l=el('label',{class:'row',style:'gap:6px;cursor:pointer'});const c=el('input',{type:'checkbox'});c.checked=!!S[k];c.onchange=()=>{S[k]=c.checked;save();applyNeckOpts();fn&&fn();};l.append(c,document.createTextNode(lbl));box.appendChild(l);};
+ opt('Fit whole neck on screen','fit',nutScroll);opt('Keep neck in view when scrolling','pin');
 }
+function applyNeckOpts(){const h=document.documentElement;h.classList.toggle('neck-fit',!!S.fit);h.classList.toggle('neck-pin',!!S.pin);
+ const hd=document.querySelector('header.top');if(hd)h.style.setProperty('--hdr-h',hd.offsetHeight+'px');}
+applyNeckOpts();window.addEventListener('resize',applyNeckOpts);
+// keep the playing note in view
+function followDot(d){const w=d&&d.closest('.board-wrap');if(!w||w.scrollWidth<=w.clientWidth+2)return;const r=d.getBoundingClientRect(),wr=w.getBoundingClientRect();const x=r.left+r.width/2-wr.left;
+ if(x<wr.width*.18||x>wr.width*.82)w.scrollTo({left:w.scrollLeft+x-wr.width/2,behavior:'smooth'});}
 
 /* ---------- full-neck routes ---------- */
 function runDP(P,tun,pr){
@@ -1334,7 +1349,7 @@ function seqStop(){const c=AC;SEQ.handles.forEach(h=>{try{h&&h.stop&&h.stop(c?c.
 function seqPlay(pts){seqStop();if(!S.playDir)S.playDir='up';const step={slow:.34,normal:.21,fast:.12}[S.playSpeed||'normal'];
  const up=pts.slice().sort((a,b)=>a[2]-b[2]);const seq=S.playDir==='down'?up.slice().reverse():S.playDir==='both'?[...up,...up.slice(0,-1).reverse()]:up;
  seq.forEach((x,i)=>{SEQ.handles.push(pluck(freq(x[2]),i*step,Math.max(.6,step*2.5),.22));
-  SEQ.timers.push(setTimeout(()=>{$$('#ex-board .dot.playing').forEach(d=>d.classList.remove('playing'));const d=document.querySelector(`#ex-board .dot[data-k="${x[0]},${x[1]}"]`);if(d)d.classList.add('playing');},i*step*1000));});
+  SEQ.timers.push(setTimeout(()=>{$$('#ex-board .dot.playing').forEach(d=>d.classList.remove('playing'));const d=document.querySelector(`#ex-board .dot[data-k="${x[0]},${x[1]}"]`);if(d){d.classList.add('playing');followDot(d);}},i*step*1000));});
  SEQ.timers.push(setTimeout(seqStop,seq.length*step*1000+500));const b=$('#seq-go');if(b)b.textContent='■ Stop';}
 function playControls(pts){const r=el('div',{class:'pr-row'});
  const sel=(aria,opts,cur,set)=>{const x=el('select',{'aria-label':aria});opts.forEach(([v,t])=>x.appendChild(el('option',{value:v},t)));x.value=cur;x.onchange=()=>{set(x.value);save();};return x;};
@@ -1385,15 +1400,15 @@ function renderPractice(c){
  } else if(S.pmode==='box'){
   if(S.boxIdx==null||S.boxIdx>=boxes.length)S.boxIdx=0;
   const b=boxes[S.boxIdx],nx=boxes[S.boxIdx+1];
-  const mm=el('div',{class:'mm-wrap'},miniMapSVG(boxes,S.boxIdx,S.boxAll));
-  mm.addEventListener('click',e=>{const g=e.target.closest('[data-bx]');if(!g)return;S.boxIdx=+g.dataset.bx;S.boxAll=false;S.selMidi=null;save();renderExplorer();});
-  P.appendChild(el('span',{class:'lbl'},'Box map '+tipBtn('box')));P.appendChild(mm);
   const st=d=>{S.boxIdx=(S.boxIdx+d+boxes.length)%boxes.length;S.boxAll=false;S.selMidi=null;save();renderExplorer();};
-  const r2=row();r2.appendChild(nav(`${b.name} · frets ${b.minF}–${b.maxF}`,()=>st(-1),()=>st(1)));
+  const r2=row();r2.appendChild(el('span',{class:'lbl'},'Box '+tipBtn('box')));
+  const bsel=el('select',{'aria-label':'Box',class:'box-sel'});boxes.forEach((x,i)=>bsel.appendChild(el('option',{value:String(i)},`${x.name} · frets ${x.minF}–${x.maxF}`)));bsel.value=String(S.boxIdx);
+  bsel.onchange=()=>{S.boxIdx=+bsel.value;S.boxAll=false;S.selMidi=null;save();renderExplorer();};
+  const bn=el('div',{class:'row',style:'gap:6px;flex-wrap:nowrap'});bn.append(el('button',{class:'btn ghost sm','aria-label':'Previous box',onclick:()=>st(-1)},'◀'),bsel,el('button',{class:'btn ghost sm','aria-label':'Next box',onclick:()=>st(1)},'▶'));r2.appendChild(bn);
   const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.boxAll;cb.onchange=()=>{S.boxAll=cb.checked;save();renderExplorer();};lab.append(cb,document.createTextNode('Show all boxes on the neck'));r2.appendChild(lab);P.appendChild(playControls(b.pts));
   board=S.boxAll?boardSVG(tun,marks,EXF,{fcols:true,boxes:boxes.map((x,i)=>({minF:x.minF,maxF:x.maxF,alt:i%2===1,label:x.name})),sel:S.selMidi}):boardSVG(tun,marks,EXF,{fcols:true,keep:b.keys,boxes:[{minF:b.minF,maxF:b.maxF,label:b.name}],sel:S.selMidi,octNum:true});
   const uniq=new Set(boxes.map(x=>x.k)).size;
-  txt=`<ol class="steps"><li><b>Learn the shape:</b> press ▶ Play and follow the lit dots, slowly, in both directions.</li><li><b>Start the jam</b> below and improvise using only the lit notes.</li><li><b>Land on the gold roots</b> to start and end phrases, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes.</li><li><b>Jump anywhere:</b> click a fret on the neck, or a box on the map, to show the box at that spot.</li><li><b>Move on:</b> ${nx?`▶ takes you to ${nx.name}, which overlaps this one`:'◀ goes back to the lower boxes'}. Sliding between neighbouring boxes is how you travel the neck.</li></ol><span class="empty">The scale has ${uniq} boxes, numbered from Box 1, which starts on the root. "(high)" is the same box 12 frets higher, "(low)" the same box 12 frets lower, near the nut.</span>`;
+  txt=`<ol class="steps"><li><b>Learn the shape:</b> press ▶ Play and follow the lit dots, slowly, in both directions.</li><li><b>Start the jam</b> below and improvise using only the lit notes.</li><li><b>Land on the gold roots</b> to start and end phrases, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes.</li><li><b>Jump anywhere:</b> click a fret on the neck to show the box at that spot, or pick one from the Box menu.</li><li><b>Move on:</b> ${nx?`▶ takes you to ${nx.name}, which overlaps this one`:'◀ goes back to the lower boxes'}. Sliding between neighbouring boxes is how you travel the neck.</li></ol><span class="empty">The scale has ${uniq} boxes, numbered from Box 1, which starts on the root. "(high)" is the same box 12 frets higher, "(low)" the same box 12 frets lower, near the nut.</span>`;
  } else {
   if(S.runIdx==null||S.runIdx>=runs.length)S.runIdx=0;const r=runs[S.runIdx];
   const g=el('div',{class:'routes'});
@@ -2578,6 +2593,7 @@ const TIPS={
  caged:['CAGED shapes','Every chord shape on the neck is one of the five open chords C, A, G, E or D, moved up and played with a barre. "E shape" means the shape of an open E chord, moved up the neck.'],
  fingers:['Finger numbers','1 = index, 2 = middle, 3 = ring, 4 = little finger. A bar across several strings is a barre: one finger, usually the index, presses them all at once.'],
  dir:['Direction','Low → high plays from the lowest pitch up, High → low from the highest down, Up & down goes up and comes back.'],
+ frets:['Number of frets','How many frets your guitar has. A classic Fender Strat or Tele has 21 (the standard here), modern Fenders and most Gibsons 22, shred guitars like Ibanez and Jackson 24, acoustics about 20 and classical guitars 19.'],
  note:['Note','The root of the chord you want to see.']};
 function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
