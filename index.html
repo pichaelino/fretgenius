@@ -140,6 +140,7 @@ header.top nav.tabs button[aria-current="page"]{box-shadow:0 4px 16px color-mix(
   .bottom-nav nav.tabs button[aria-current="page"] .ic{background:var(--accent);color:var(--on-accent);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 45%,transparent)}
   main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))!important}
 }
+.board-wrap.sgn-board svg{min-width:calc(var(--nf,12) * 56px + 90px)}
 /* ---- song neck pinned ---- */
 @media (min-width:761px){
   html.neck-pin #sg-neck{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:8px 18px;align-items:center;padding:12px 16px}
@@ -148,7 +149,6 @@ header.top nav.tabs button[aria-current="page"]{box-shadow:0 4px 16px color-mix(
   html.neck-pin #sg-neck>.board-wrap{grid-column:2;margin:0}
   html.neck-pin #sg-neck>details.help,html.neck-pin #sg-neck>p{grid-column:1/-1}
   html.neck-pin #sg-neck>details.help{display:none}
-  html.neck-pin #sg-neck .board-wrap svg{max-height:230px}
 }
 html.neck-pin #sg-neck{position:sticky;top:calc(var(--hdr-h,60px) + env(safe-area-inset-top,0px) + 6px);z-index:4;box-shadow:0 12px 28px rgba(0,0,0,.4)}
 @media (max-width:760px){
@@ -378,7 +378,6 @@ svg .fn{pointer-events:none}
 .sgn-name{font:800 44px/1 var(--f-display);color:var(--ink);letter-spacing:.01em}
 .sgn-now small{font:500 12.5px var(--f-mono);color:var(--muted)}
 .sgn-next b{font:800 26px/1 var(--f-display);color:var(--muted)}
-.sgn-board svg{min-width:640px}
 svg .mutex{fill:var(--bad);font:700 15px var(--f-body)}
 svg .nextring{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:3 3;opacity:.9}
 .sgn-board svg .dot{transform-box:fill-box;transform-origin:center}
@@ -761,6 +760,7 @@ svg .mtog.muted text{fill:var(--bad)}
     </div>
   </div>
   <div class="panel" id="sg-shapes"></div>
+  <div class="neckbar" id="sg-neckbar"></div>
   <div class="panel sg-neck" id="sg-neck"></div>
   <div class="sg-float" id="sg-float" aria-hidden="true"><button class="btn" id="sgf-play">▶ Play</button><span class="sgf-now" id="sgf-now"></span><span class="sgf-bpm"><button class="btn ghost sm" id="sgf-dn" aria-label="Slower">−</button><b id="sgf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="sgf-up" aria-label="Faster">+</button></span></div>
   <div class="sgrid">
@@ -1887,7 +1887,7 @@ function renderSong(){
  const bad=tokens(S.song).filter((t,i)=>!parsed[i]);
  $('#sg-note').innerHTML=bad.length?`Couldn't read: <b>${bad.map(b=>b.replace(/</g,'&lt;')).join(', ')}</b>. Chords start with a note name, like ${pretty('C')} or ${pretty('Am')}.`:(S.songIsSample?'<span class="sample-tag">Example progression</span> · type your own chords above.':`Separate chords with spaces. Slash chords (${pretty('G/B')}), sevenths and extensions (${pretty('Cmaj7')}, ${pretty('Dm9')}, ${pretty('E7#9')}) all work.${isIt()?' You can type them in Italian or English.':''}`);$('#sg-input').placeholder='e.g. '+['C','G','Am','F'].map(nameIn).join(' ');
  const prog=$('#sg-prog');prog.innerHTML='';
- renderSongShapes(valid);renderSongNeck(playTimer?Math.max(0,playIdx-1):sgNeckIdx);
+ neckBar('#sg-neckbar');renderSongShapes(valid);renderSongNeck(playTimer?Math.max(0,playIdx-1):sgNeckIdx);
  const kbox=$('#sg-key'),abox=$('#sg-analysis'),nbox=$('#sg-next'),pbox=$('#sg-palette'),scb=$('#sg-scales'),tbox=$('#sg-templates');
  let key;
  if(!valid.length){
@@ -1962,7 +1962,7 @@ function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const 
  if(c.bpc!=null&&!marks.has(c.bpc))marks.set(c.bpc,{lab:pretty(c.bass),root:false,cat:'c0'});
  const only=new Set(),muted=[],ghosts=[];if(v)v.frets.forEach((f,st)=>{if(f>=0)only.add(st+','+f);else muted.push(st);});
  if(vn&&valid.length>1)vn.frets.forEach((f,st)=>{if(f>=0&&!only.has(st+','+f))ghosts.push([st,f]);});
- const maxF=Math.max(5,...(v?v.frets:[0]),...(vn?vn.frets:[0]))+2,F=Math.min(EXF,Math.max(12,maxF));
+ const maxF=Math.max(5,...(v?v.frets:[0]),...(vn?vn.frets:[0]))+2,F=EXF;
  const playing=!!playTimer;
  box.innerHTML='';
  const head=el('div',{class:'sgn-head'});
@@ -1974,10 +1974,11 @@ function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const 
  const now=el('div',{class:'sgn-now'});
  now.innerHTML=`<div><span class="lbl">${playing?'Play now':'Chord'}</span><b class="sgn-name">${chordLabel(c)}</b><small>${ch.f.map(l=>pretty(spellIv(c.root,l))).join(' ')}</small></div>`+(valid.length>1?`<div class="sgn-next"><span class="lbl">Next</span><b>${chordLabel(nx)}</b><small>dashed rings on the neck</small></div>`:'');
  box.appendChild(now);
- const wrap=el('div',{class:'board-wrap sgn-board'},v?boardSVG(tun,marks,F,{only,muted,ghosts}):'<p class="empty" style="padding:12px">No shape found for this chord.</p>');
+ const wrap=el('div',{class:'board-wrap sgn-board',style:`--nf:${F}`},v?boardSVG(tun,marks,F,{only,muted,ghosts}):'<p class="empty" style="padding:12px">No shape found for this chord.</p>');
  box.appendChild(wrap);
  box.appendChild(helpBox('How to read this',`Coloured dots: where to put your fingers (amber = root). × = don't play that string. ${playing?'The dots flash on each strum.':'Press ▶ Play progression and the neck follows the music, flashing on each strum. Tap any chord above to show it here.'}`,'sg-neck'));
  if(flash)sgFlash();
+ {const ds=[...box.querySelectorAll('.board-wrap .dot')];if(ds.length){const w=box.querySelector('.board-wrap');if(w.scrollWidth>w.clientWidth+2){const xs=ds.map(d=>d.getBoundingClientRect()),wr=w.getBoundingClientRect();const lo=Math.min(...xs.map(r=>r.left)),hi=Math.max(...xs.map(r=>r.right));const mid=(lo+hi)/2-wr.left;if(lo<wr.left+20||hi>wr.right-20)w.scrollLeft+=mid-wr.width/2;}}}
  $$('#sg-shapes .sg-card').forEach((x,i)=>x.classList.toggle('now',i===idx));
 }
 function sgFlash(soft){const b=$('#sg-neck .sgn-board');if(!b)return;b.classList.remove('flash','flash-soft');void b.offsetWidth;b.classList.add(soft?'flash-soft':'flash');}
