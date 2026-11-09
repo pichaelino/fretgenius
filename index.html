@@ -237,6 +237,15 @@ svg .mm-f{fill:var(--muted);font:500 10px var(--f-mono)}
 .jamchip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 svg .shiftring{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 2}
 svg .snum{fill:var(--accent);font-weight:700}
+.beta{display:inline-block;font:700 9px/1 var(--f-body);letter-spacing:.06em;padding:3px 5px;border-radius:4px;background:var(--accent-soft);color:var(--accent);vertical-align:2px;margin-left:2px}
+[aria-current="page"] .beta{background:var(--on-accent);color:var(--accent)}
+.beta.big{font-size:13px;padding:5px 8px;vertical-align:8px;letter-spacing:.08em}
+.jbeat{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font:600 12px var(--f-mono);color:var(--muted)}
+.jbeat.one{border-color:var(--accent)}
+.jbeat.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.pr-jam input[type=range],.tb-transport input[type=range]{accent-color:var(--accent)}
+.jam-status{font-weight:700;color:var(--accent);font-size:14px}
+svg .dot.playing{stroke:var(--ink);stroke-width:3.5}
 .sug-row{display:flex;gap:6px;align-items:stretch}
 .sug-row .tpl{flex:1;min-width:0}
 .shape-play{border:0;background:transparent;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;color:inherit}
@@ -383,7 +392,7 @@ svg .mtog.muted text{fill:var(--bad)}
  ['circle','Circle of Fifths','Circle','<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/>'],
  ['tabs','Tab Player','Tabs','<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="14" r="1.6"/>'],
  ['song','Song Builder','Song','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>']];
- ['nav-top','nav-bottom'].forEach(id=>{document.getElementById(id).innerHTML=items.map(([v,l,s,ic])=>`<button type="button" data-v="${v}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg><span class="l">${l}</span><span class="s">${s}</span></button>`).join('');});})();
+ ['nav-top','nav-bottom'].forEach(id=>{document.getElementById(id).innerHTML=items.map(([v,l,s,ic])=>`<button type="button" data-v="${v}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg><span class="l">${l}${v==='tabs'?' <span class="beta">BETA</span>':''}</span><span class="s">${s}${v==='tabs'?'<span class="beta">β</span>':''}</span></button>`).join('');});})();
 </script>
 
 <main class="wrap">
@@ -476,8 +485,9 @@ svg .mtog.muted text{fill:var(--bad)}
 <!-- TAB PLAYER -->
 <section class="view" id="v-tabs" hidden>
   <div class="head">
-    <h1 class="vt">Tab player</h1>
+    <h1 class="vt">Tab player <span class="beta big">BETA</span></h1>
     <p class="lede">Open a guitar tab saved as a .txt file. Fretwise joins each section into one continuous staff of bars, then plays a whole section or the whole song while a cursor follows. Tap any bar to start from there. Your file stays in this browser.</p>
+    <p class="empty">Still in development: some tabs may not read or play correctly yet.</p>
   </div>
   <div class="panel" id="tb-drop">
     <div class="row">
@@ -922,9 +932,12 @@ function scaleBoxes(rootPc,it,tun){
  }
  const all=[];
  boxes.forEach(b=>[-12,0,12].forEach(sh=>{const ns=b.notes.map(([st,f,m])=>[st,f+sh,m+sh]);if(ns.some(x=>x[1]<0||x[1]>EXF))return;
-  all.push({k:b.k,lbl:b.lbl,keys:new Set(ns.map(x=>x[0]+','+x[1])),minF:b.minF+sh,maxF:b.maxF+sh,ms:ns.map(x=>x[2])});}));
- all.sort((a,b)=>a.minF-b.minF||a.k-b.k);
- const occ={};all.forEach(b=>{occ[b.k]=(occ[b.k]||0)+1;b.name='Box '+(b.k+1)+(occ[b.k]>1?' ('+occ[b.k]+')':'');});
+  all.push({k:b.k,lbl:b.lbl,keys:new Set(ns.map(x=>x[0]+','+x[1])),minF:b.minF+sh,maxF:b.maxF+sh,ms:ns.map(x=>x[2]),pts:ns});}));
+ const b1=all.filter(x=>x.k===0).sort((a,b)=>a.minF-b.minF)[0],b1f=b1?b1.minF:0;
+ all.forEach(x=>{x.o=Math.floor((x.minF-b1f+2)/12);});
+ const ord=o=>o>=0?o:10-o;
+ all.sort((a,b)=>ord(a.o)-ord(b.o)||a.k-b.k);
+ all.forEach(b=>{b.name='Box '+(b.k+1)+(b.o===0?'':b.o===1?' (high)':b.o>1?' (higher)':' (low)');});
  return all;
 }
 function fullRun(rootPc,it,tun){
@@ -985,7 +998,7 @@ function boardSVG0(tun,marks,frets=15,opt={}){
    s+=`<g class="${inR?'':'dim'}">`;
    if(same)s+=`<circle class="samering" cx="${x}" cy="${y}" r="${r+4.5}"></circle>`;
    if(opt.rings&&opt.rings.has(st+','+f))s+=`<circle class="shiftring" cx="${x}" cy="${y}" r="${r+4}"></circle>`;
-   s+=`<circle class="dot${cc}" data-m="${m}" cx="${x}" cy="${y}" r="${r}"></circle><text class="dt${cc}" x="${x}" y="${y+3.5}" text-anchor="middle">${lab}</text></g>`;}}
+   s+=`<circle class="dot${cc}" data-m="${m}" data-k="${st},${f}" cx="${x}" cy="${y}" r="${r}"></circle><text class="dt${cc}" x="${x}" y="${y+3.5}" text-anchor="middle">${lab}</text></g>`;}}
  for(let f=1;f<=frets;f++)s+=`<text class="fn" x="${nutX+(f-.5)*fw}" y="${top+boardH+30}" text-anchor="middle">${f}</text>`;
  return s+'</svg>';
 }
@@ -1051,47 +1064,156 @@ function fullRuns(rootPc,it,tun){
 
 /* ---------- jam (backing track) ---------- */
 const JP={
- maj1:{name:'I–V–vi–IV',ch:[[0,'maj'],[7,'maj'],[9,'min'],[5,'maj']]},
- maj2:{name:'I–IV–V–IV',ch:[[0,'maj'],[5,'maj'],[7,'maj'],[5,'maj']]},
+ maj1:{name:'I–V–vi–IV (pop)',ch:[[0,'maj'],[7,'maj'],[9,'min'],[5,'maj']]},
+ maj2:{name:'I–IV–V–IV (rock and roll)',ch:[[0,'maj'],[5,'maj'],[7,'maj'],[5,'maj']]},
+ fifties:{name:'I–vi–IV–V (50s)',ch:[[0,'maj'],[9,'min'],[5,'maj'],[7,'maj']]},
+ sad:{name:'vi–IV–I–V (sad pop)',ch:[[9,'min'],[5,'maj'],[0,'maj'],[7,'maj']]},
+ jazz:{name:'ii7–V7–Imaj7 (jazz)',ch:[[2,'m7'],[7,'dom7'],[0,'maj7'],[0,'maj7']]},
+ two:{name:'I–IV (two-chord vamp)',ch:[[0,'maj'],[5,'maj']]},
  min1:{name:'i–♭VI–♭VII–i',ch:[[0,'min'],[8,'maj'],[10,'maj'],[0,'min']]},
  min2:{name:'i–iv–v–i',ch:[[0,'min'],[5,'min'],[7,'min'],[0,'min']]},
+ andal:{name:'i–♭VII–♭VI–V (Andalusian)',ch:[[0,'min'],[10,'maj'],[8,'maj'],[7,'maj']]},
+ epic:{name:'i–♭VI–♭III–♭VII (epic)',ch:[[0,'min'],[8,'maj'],[3,'maj'],[10,'maj']]},
+ mtwo:{name:'i–iv (minor vamp)',ch:[[0,'min'],[5,'min']]},
+ mjazz:{name:'iiø7–V7–i (minor jazz)',ch:[[2,'m7b5'],[7,'dom7'],[0,'min'],[0,'min']]},
  blues:{name:'12-bar blues',ch:[[0,'dom7'],[0,'dom7'],[0,'dom7'],[0,'dom7'],[5,'dom7'],[5,'dom7'],[0,'dom7'],[0,'dom7'],[7,'dom7'],[5,'dom7'],[0,'dom7'],[7,'dom7']]},
+ qblues:{name:'Quick-change blues',ch:[[0,'dom7'],[5,'dom7'],[0,'dom7'],[0,'dom7'],[5,'dom7'],[5,'dom7'],[0,'dom7'],[0,'dom7'],[7,'dom7'],[5,'dom7'],[0,'dom7'],[7,'dom7']]},
  mblues:{name:'Minor blues',ch:[[0,'m7'],[0,'m7'],[0,'m7'],[0,'m7'],[5,'m7'],[5,'m7'],[0,'m7'],[0,'m7'],[8,'dom7'],[7,'dom7'],[0,'m7'],[7,'dom7']]},
  dor:{name:'i7–IV7 (Dorian vamp)',ch:[[0,'m7'],[5,'dom7']]},
+ dor2:{name:'i7–ii7 (Dorian groove)',ch:[[0,'m7'],[2,'m7']]},
  phr:{name:'i–♭II (Phrygian vamp)',ch:[[0,'min'],[1,'maj']]},
+ phr2:{name:'i–♭II–♭III–♭II',ch:[[0,'min'],[1,'maj'],[3,'maj'],[1,'maj']]},
  lyd:{name:'I–II (Lydian vamp)',ch:[[0,'maj'],[2,'maj']]},
- mix:{name:'I–♭VII–IV–I',ch:[[0,'maj'],[10,'maj'],[5,'maj'],[0,'maj']]},
+ lyd2:{name:'Imaj7–II–vii–II',ch:[[0,'maj7'],[2,'maj'],[11,'min'],[2,'maj']]},
+ mix:{name:'I–♭VII–IV–I (classic rock)',ch:[[0,'maj'],[10,'maj'],[5,'maj'],[0,'maj']]},
+ mix2:{name:'I–♭VII (Mixolydian vamp)',ch:[[0,'dom7'],[10,'maj']]},
  loc:{name:'iø7–♭II (Locrian vamp)',ch:[[0,'m7b5'],[1,'maj']]},
  harm:{name:'i–iv–V7–i',ch:[[0,'min'],[5,'min'],[7,'dom7'],[0,'min']]},
+ harm2:{name:'i–♭VI–V7',ch:[[0,'min'],[8,'maj'],[7,'dom7'],[7,'dom7']]},
  melm:{name:'i(maj7)–IV7',ch:[[0,'mmaj7'],[5,'dom7']]},
  pdom:{name:'I–♭II (Spanish vamp)',ch:[[0,'maj'],[1,'maj']]},
  ldom:{name:'I7–II',ch:[[0,'dom7'],[2,'maj']]},
  mixb6:{name:'I–iv',ch:[[0,'maj'],[5,'min']]}};
-const JMAP={major:['maj1','maj2'],ionian:['maj1','maj2'],natmin:['min1','min2'],aeolian:['min1','min2'],minpent:['min1','mblues','blues'],blues:['blues','mblues','min1'],
- majpent:['maj1','blues'],majblues:['blues','maj2'],bebop:['blues','mix'],harmin:['harm'],harmin1:['harm'],melmin:['melm'],melmin1:['melm'],
- dorian:['dor','min1'],phrygian:['phr'],lydian:['lyd'],mixolydian:['mix','blues'],locrian:['loc'],phrydom:['pdom','harm'],lyddom:['ldom'],mixb6:['mixb6'],hungmin:['harm'],dblharm:['pdom']};
-function jamOptions(it){const has3=it.f.includes('3'),hasb3=it.f.includes('b3');const l=(JMAP[it.id]||[]).map(k=>JP[k]);
- l.push({name:'Drone on the root',ch:[[0,has3&&!hasb3?'maj':hasb3&&!has3?'min':'five']]});return l;}
-const JAM={on:false,timer:null,nextT:0,bar:0,prog:null,root:0,rootName:'C',bus:null,key:''};
-function jamStop(){JAM.on=false;clearInterval(JAM.timer);if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}$$('.jamchip.on').forEach(x=>x.classList.remove('on'));const b=$('#jam-go');if(b){b.textContent='▶ Start jam';b.classList.remove('ghost');}}
-function jamStart(prog,rootPc,rootName,key){jamStop();const c=ac();JAM.bus=c.createGain();JAM.bus.gain.value=.75;JAM.bus.connect(master);
- Object.assign(JAM,{on:true,prog,root:rootPc,rootName,key,bar:0,nextT:c.currentTime+.12});JAM.timer=setInterval(jamTick,30);jamTick();
+const JMAP={major:[],ionian:[],natmin:[],aeolian:[],minpent:['mblues','blues'],blues:['blues','qblues','mblues'],majpent:['blues'],majblues:['blues','qblues'],bebop:['blues','jazz','mix2'],
+ harmin:['harm','harm2','andal'],harmin1:['harm','harm2','andal'],melmin:['melm','mjazz'],melmin1:['melm','mjazz'],dorian:['dor','dor2'],phrygian:['phr','phr2'],lydian:['lyd','lyd2'],
+ mixolydian:['mix','mix2','blues'],locrian:['loc'],phrydom:['pdom','andal'],lyddom:['ldom'],mixb6:['mixb6'],hungmin:['harm','harm2'],dblharm:['pdom']};
+const GEN_MAJ=['maj1','maj2','fifties','sad','two','jazz','mix','blues'],GEN_MIN=['min1','min2','andal','epic','mtwo','mjazz','mblues'];
+function jamOptions(it){const has3=it.f.includes('3'),hasb3=it.f.includes('b3');const q=has3&&!hasb3?'maj':hasb3?'min':'x';
+ const own=(JMAP[it.id]||[]).map(k=>({...JP[k],grp:'Made for this scale',k}));
+ const gen=(q==='maj'?GEN_MAJ:q==='min'?GEN_MIN:[]).filter(k=>!own.some(o=>o.k===k)).map(k=>({...JP[k],grp:q==='maj'?'Common in a major key':'Common in a minor key',k}));
+ return[...own,...gen,{name:'Drone on the root',ch:[[0,q==='maj'?'maj':q==='min'?'min':'five']],grp:'Simple',k:'drone'}];}
+const JSTYLE={pop:'Pop strum',rock:'Rock eighths',arp:'Arpeggio',shuffle:'Blues shuffle',reggae:'Reggae offbeat'};
+const JTS=['4/4','3/4','6/8','12/8'];
+const tsSlots=ts=>({'4/4':8,'3/4':6,'6/8':6,'12/8':12})[ts];
+const tsBeatSlots=ts=>ts.endsWith('/8')?3:2;
+function jamPattern(style,ts){const n=tsSlots(ts),bs=tsBeatSlots(ts),E=[];
+ if(style==='shuffle'&&ts!=='4/4'&&ts!=='12/8')style='pop';
+ if(style==='pop'){const P={'4/4':[[0,'b'],[0,'D'],[2,'d'],[3,'u'],[4,'f'],[5,'u'],[6,'d'],[7,'u']],'3/4':[[0,'b'],[0,'D'],[2,'d'],[3,'u'],[4,'d'],[5,'u']],
+  '6/8':[[0,'b'],[0,'D'],[2,'u'],[3,'f'],[3,'d'],[5,'u']],'12/8':[[0,'b'],[0,'D'],[2,'u'],[3,'d'],[5,'u'],[6,'f'],[6,'d'],[8,'u'],[9,'d'],[11,'u']]};return P[ts];}
+ if(style==='rock'){for(let i=0;i<n;i++)E.push([i,i%bs===0?'M':'m']);E.push([0,'b'],[Math.floor(n/2),'f']);return E;}
+ if(style==='arp'){E.push([0,'b']);const seq=[1,2,3,4,3,2,1,2,3,4,3,2];for(let i=1;i<n;i++)E.push([i,'p',seq[(i-1)%seq.length]]);return E;}
+ if(style==='shuffle'){const per=ts==='4/4'?2:3,beats=n/per;for(let k=0;k<beats;k++){E.push([k*per,'g',k%2?9:7]);E.push([k*per+per-1,'g',k%2?9:7]);if(k%2)E.push([k*per,'x']);}return E;}
+ if(style==='reggae'){E.push([0,'b']);if(ts==='4/4'){E.push([2,'x'],[6,'x'],[5,'f']);}else if(ts==='3/4'){E.push([2,'x'],[4,'x']);}else{for(let k=0;k<n/3;k++)E.push([k*3+2,'x']);}return E;}
+ return[[0,'b'],[0,'D']];}
+const JAM={on:false,timer:null,nextT:0,bar:0,prog:null,root:0,bus:null,key:'',taps:[],beatTimers:[]};
+function jamClick(t,acc){const c=ac();const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=acc?1900:1300;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(acc?.22:.13,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(JAM.bus);o.start(t);o.stop(t+.06);}
+function jamStop(){JAM.on=false;clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
+ $$('.jamchip.on,.jbeat.on').forEach(x=>x.classList.remove('on'));const b=$('#jam-go');if(b){b.textContent='▶ Start jam';b.classList.remove('ghost');}const s=$('#jam-status');if(s)s.textContent='';}
+function jamStart(prog,rootPc,key){jamStop();const c=ac();JAM.bus=c.createGain();JAM.bus.gain.value=.75;JAM.bus.connect(master);
+ Object.assign(JAM,{on:true,prog,root:rootPc,key,bar:S.jamCount?-1:0,nextT:c.currentTime+.12});JAM.timer=setInterval(jamTick,30);jamTick();
  const b=$('#jam-go');if(b){b.textContent='■ Stop jam';b.classList.add('ghost');}}
-function jamTick(){const c=ac(),bd=60/(S.jamBpm||90);
- while(JAM.on&&JAM.nextT<c.currentTime+.35){const t=JAM.nextT,idx=JAM.bar%JAM.prog.ch.length,[off,type]=JAM.prog.ch[idx],pc=(JAM.root+off)%12,d=t-c.currentTime;
-  const v=bestVoicingMidis(pc,type,songTuning());const bass=40+((pc-4+12)%12),fifth=bass+7<=52?bass+7:bass-5;
-  pluck(freq(bass),d,bd*2,.2,{dest:JAM.bus});pluck(freq(fifth),d+bd*2,bd*2,.15,{dest:JAM.bus});
-  [[0,1,.12],[1,1,.065],[1.5,-1,.055],[2.5,-1,.055],[3,1,.07],[3.5,-1,.055]].forEach(([b,dir,vol])=>{const ns=b===0?v:v.slice(-4);(dir>0?ns:ns.slice().reverse()).forEach((m,k)=>pluck(freq(m),d+b*bd+k*.014,bd*1.3,vol,{dest:JAM.bus}));});
-  setTimeout(()=>{if(JAM.on)$$('.jamchip').forEach((x,i)=>x.classList.toggle('on',i===idx));},Math.max(0,d*1000));
-  JAM.bar++;JAM.nextT+=bd*4;}}
+function jamTick(){const c=ac(),ts=S.jamTS||'4/4',n=tsSlots(ts),bs=tsBeatSlots(ts),bpm=S.jamBpm||90;
+ const sd=ts.endsWith('/8')?60/bpm/3:30/bpm,barDur=sd*n,swing=(S.jamFeel==='swing'||S.jamStyle==='shuffle')&&ts.endsWith('/4');
+ while(JAM.on&&JAM.nextT<c.currentTime+.35){const t=JAM.nextT,bar=JAM.bar;
+  const beatAt=k=>t+k*bs*sd;
+  if(bar<0||S.jamClick)for(let k=0;k<n/bs;k++)jamClick(beatAt(k),k===0);
+  const nb=n/bs;for(let k=0;k<nb;k++){const tt=beatAt(k);JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('.jbeat').forEach((x,i)=>x.classList.toggle('on',i===k));const s=$('#jam-status');if(s)s.textContent=bar<0?`Count-in ${k+1}`:'';},Math.max(0,(tt-c.currentTime)*1000)));}
+  if(JAM.beatTimers.length>64)JAM.beatTimers=JAM.beatTimers.slice(-32);
+  if(bar>=0){const bpc=S.jamBpc||1,idx=Math.floor(bar/bpc)%JAM.prog.ch.length,[off,type]=JAM.prog.ch[idx],pc=(JAM.root+off)%12;
+   const v=bestVoicingMidis(pc,type,songTuning()).slice().sort((a,b)=>a-b);const bass=40+((pc-4+12)%12),fifth=bass+7<=52?bass+7:bass-5;
+   const at=s=>{let x=t+s*sd;if(swing&&s%2===1)x+=sd/3;return x-c.currentTime;};
+   jamPattern(S.jamStyle||'pop',ts).forEach(([s,k,a])=>{const d=at(s);
+    if(k==='b')pluck(freq(bass),d,sd*bs*2,.2,{dest:JAM.bus});
+    else if(k==='f')pluck(freq(fifth),d,sd*bs*2,.15,{dest:JAM.bus});
+    else if(k==='D')v.forEach((m,i)=>pluck(freq(m),d+i*.014,sd*bs*1.5,.12,{dest:JAM.bus}));
+    else if(k==='d')v.slice(-4).forEach((m,i)=>pluck(freq(m),d+i*.012,sd*bs,.065,{dest:JAM.bus}));
+    else if(k==='u')v.slice(-4).reverse().forEach((m,i)=>pluck(freq(m),d+i*.012,sd*bs*.9,.055,{dest:JAM.bus}));
+    else if(k==='M'||k==='m'){[bass,bass+7,bass+12].forEach((m,i)=>pluck(freq(m),d+i*.008,k==='M'?sd*1.6:sd*.7,k==='M'?.11:.07,{dest:JAM.bus}));}
+    else if(k==='p'){const up=v.slice(1);if(up.length)pluck(freq(up[(a-1)%up.length]),d,sd*3,.13,{dest:JAM.bus});}
+    else if(k==='g'){[bass,bass+a].forEach((m,i)=>pluck(freq(m),d+i*.006,sd*1.3,.12,{dest:JAM.bus}));}
+    else if(k==='x'){v.slice(-3).forEach((m,i)=>pluck(freq(m),d+i*.006,.11,.09,{dest:JAM.bus}));}});
+   JAM.beatTimers.push(setTimeout(()=>{if(JAM.on)$$('.jamchip').forEach((x,i)=>x.classList.toggle('on',i===idx));},Math.max(0,(t-c.currentTime)*1000)));}
+  JAM.bar++;JAM.nextT+=barDur;}}
+function jamTap(){const now=performance.now();JAM.taps=JAM.taps.filter(x=>now-x<2500);JAM.taps.push(now);
+ if(JAM.taps.length>=2){const d=[];for(let i=1;i<JAM.taps.length;i++)d.push(JAM.taps[i]-JAM.taps[i-1]);const avg=d.reduce((a,b)=>a+b,0)/d.length;let bpm=Math.round(60000/avg);
+  if((S.jamTS||'4/4').endsWith('/8'))bpm=Math.round(bpm);bpm=Math.max(50,Math.min(200,bpm));S.jamBpm=bpm;save();const r=$('#jam-bpm-r'),i=$('#jam-bpm');if(r)r.value=bpm;if(i)i.value=bpm;}}
+function renderJam(it,rootPc){
+ const jam=$('#ex-jam');jam.innerHTML='';const opts=jamOptions(it);if(S.jamIdx==null||S.jamIdx>=opts.length)S.jamIdx=0;
+ if(!S.jamBpm)S.jamBpm=90;if(!S.jamStyle)S.jamStyle='pop';if(!S.jamTS)S.jamTS='4/4';if(!S.jamFeel)S.jamFeel='straight';if(!S.jamBpc)S.jamBpc=1;
+ const prog=opts[S.jamIdx];const chName=([off,t])=>pretty(spellIv(S.root,REL_LBL[off])+CH[t].sym);
+ const key=[S.root,it.id,S.jamIdx,S.jamStyle,S.jamTS,S.jamFeel,S.jamBpc].join('|');
+ const head=el('div',{class:'pr-row'});head.appendChild(el('h3',{},'Jam over it'));
+ const go=el('button',{class:'btn'+(JAM.on?' ghost':''),id:'jam-go'},JAM.on?'■ Stop jam':'▶ Start jam');go.onclick=()=>{if(JAM.on)jamStop();else jamStart(prog,rootPc,key);};
+ head.append(go,el('span',{class:'jam-status',id:'jam-status'}));jam.appendChild(head);
+ // progression
+ const r1=el('div',{class:'pr-row'});r1.appendChild(el('span',{class:'lbl'},'Progression'));
+ const sel=el('select',{id:'jam-prog','aria-label':'Backing progression'});const groups={};
+ opts.forEach((o,i)=>{(groups[o.grp]=groups[o.grp]||el('optgroup',{label:o.grp})).appendChild(el('option',{value:String(i)},`${o.name} · ${[...new Map(o.ch.map(x=>[x.join(),x])).values()].map(chName).join(' ')}`));});
+ Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=String(S.jamIdx);sel.onchange=()=>{S.jamIdx=+sel.value;save();renderExplorer();};
+ r1.appendChild(sel);jam.appendChild(r1);
+ const chips=el('div',{class:'row',style:'gap:6px'});prog.ch.forEach(x=>chips.appendChild(el('span',{class:'jamchip'},chName(x))));jam.appendChild(chips);
+ // style + time + feel + bars
+ if(S.jamStyle==='shuffle'&&(S.jamTS==='3/4'||S.jamTS==='6/8'))S.jamStyle='pop';
+ const seg=(label,opts2,cur,set,id)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label));const s2=el('div',{class:'seg',style:'flex-wrap:wrap'});
+  opts2.forEach(([v,t])=>{const b=el('button',{'aria-pressed':String(cur===v)},t);if(v==='shuffle'&&(S.jamTS==='3/4'||S.jamTS==='6/8')){b.disabled=true;b.title='Blues shuffle needs 4/4 or 12/8';}b.onclick=()=>{set(v);save();renderExplorer();};s2.appendChild(b);});g.appendChild(s2);return g;};
+ const r2=el('div',{class:'toolbar'});
+ r2.appendChild(seg('Style',Object.entries(JSTYLE),S.jamStyle,v=>S.jamStyle=v));
+ r2.appendChild(seg('Time signature',JTS.map(x=>[x,x]),S.jamTS,v=>S.jamTS=v));
+ r2.appendChild(seg('Feel',[['straight','Straight'],['swing','Swing']],S.jamFeel,v=>S.jamFeel=v));
+ r2.appendChild(seg('Each chord lasts',[[1,'1 bar'],[2,'2 bars']],S.jamBpc,v=>S.jamBpc=v));
+ jam.appendChild(r2);
+ // tempo
+ const r3=el('div',{class:'toolbar'});const tg=el('div',{class:'group'});tg.appendChild(el('span',{class:'lbl'},`Tempo (BPM${S.jamTS.endsWith('/8')?', dotted quarter':''})`));
+ const tr=el('div',{class:'row',style:'gap:8px'});
+ const rng=el('input',{type:'range',id:'jam-bpm-r',min:'50',max:'200',value:String(S.jamBpm),style:'width:150px','aria-label':'Tempo'});
+ const num=el('input',{type:'number',id:'jam-bpm',min:'50',max:'200',value:String(S.jamBpm),style:'width:68px','aria-label':'BPM'});
+ const setB=v=>{v=Math.round(+v);if(!(v>=50&&v<=200))return;S.jamBpm=v;save();rng.value=v;num.value=v;};
+ rng.oninput=()=>setB(rng.value);num.onchange=()=>setB(num.value);
+ tr.append(rng,num);[['Slow',70],['Medium',95],['Fast',130]].forEach(([l,v])=>tr.appendChild(el('button',{class:'btn ghost sm',onclick:()=>setB(v)},l)));
+ tr.appendChild(el('button',{class:'btn ghost sm',title:'Tap at least twice in time',onclick:jamTap},'Tap tempo'));
+ tg.appendChild(tr);r3.appendChild(tg);
+ const tog=(label,keyName)=>{const l=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S[keyName];cb.onchange=()=>{S[keyName]=cb.checked;save();};l.append(cb,document.createTextNode(label));return l;};
+ const tgl=el('div',{class:'row',style:'gap:14px;align-self:flex-end'});tgl.append(tog('Metronome click','jamClick'),tog('Count-in','jamCount'));r3.appendChild(tgl);
+ jam.appendChild(r3);
+ const beats=el('div',{class:'row jbeats',style:'gap:6px'});const nb=tsSlots(S.jamTS)/tsBeatSlots(S.jamTS);for(let i=0;i<nb;i++)beats.appendChild(el('span',{class:'jbeat'+(i===0?' one':'')},String(i+1)));
+ jam.appendChild(beats);
+ jam.appendChild(el('p',{class:'empty'},'The backing track loops in the background. Improvise with the lit notes on the neck: play along on your guitar, or tap the dots. Tempo changes apply from the next bar.'));
+ if(JAM.on&&JAM.key!==key)jamStart(prog,rootPc,key);
+}
+
+/* ---------- note sequence player (boxes, octaves, runs) ---------- */
+const SEQ={handles:[],timers:[]};
+function seqStop(){const c=AC;SEQ.handles.forEach(h=>{try{h&&h.stop&&h.stop(c?c.currentTime:0);}catch(e){}});SEQ.timers.forEach(clearTimeout);SEQ.handles=[];SEQ.timers=[];$$('#ex-board .dot.playing').forEach(x=>x.classList.remove('playing'));const b=$('#seq-go');if(b)b.textContent='▶ Play';}
+function seqPlay(pts){seqStop();if(!S.playDir)S.playDir='up';const step={slow:.34,normal:.21,fast:.12}[S.playSpeed||'normal'];
+ const up=pts.slice().sort((a,b)=>a[2]-b[2]);const seq=S.playDir==='down'?up.slice().reverse():S.playDir==='both'?[...up,...up.slice(0,-1).reverse()]:up;
+ seq.forEach((x,i)=>{SEQ.handles.push(pluck(freq(x[2]),i*step,Math.max(.6,step*2.5),.22));
+  SEQ.timers.push(setTimeout(()=>{$$('#ex-board .dot.playing').forEach(d=>d.classList.remove('playing'));const d=document.querySelector(`#ex-board .dot[data-k="${x[0]},${x[1]}"]`);if(d)d.classList.add('playing');},i*step*1000));});
+ SEQ.timers.push(setTimeout(seqStop,seq.length*step*1000+500));const b=$('#seq-go');if(b)b.textContent='■ Stop';}
+function playControls(pts,label){const r=el('div',{class:'pr-row'});
+ const seg=(opts,cur,set)=>{const s=el('div',{class:'seg'});opts.forEach(([v,t])=>{const b=el('button',{'aria-pressed':String(cur===v)},t);b.onclick=()=>{set(v);save();s.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};s.appendChild(b);});return s;};
+ const go=el('button',{class:'btn sm',id:'seq-go'},'▶ Play');go.onclick=()=>{if(SEQ.timers.length)seqStop();else seqPlay(pts);};
+ r.append(go,el('span',{class:'lbl'},label||'Direction'),seg([['up','Low → high'],['down','High → low'],['both','Up & down']],S.playDir||'up',v=>S.playDir=v),el('span',{class:'lbl'},'Speed'),seg([['slow','Slow'],['normal','Normal'],['fast','Fast']],S.playSpeed||'normal',v=>S.playSpeed=v));
+ return r;}
 
 /* ---------- practice panel ---------- */
 function miniMapSVG(boxes,selIdx,all){
- const u=26,W=(EXF+1)*u+4,H=58;let s=`<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Where each box sits on the neck">`;
- s+=`<rect class="mm-neck" x="0" y="0" width="${W}" height="44" rx="6"></rect>`;
- [3,5,7,9,12,15,17,19,21].forEach(f=>s+=`<text class="mm-f" x="${f*u+u/2}" y="55" text-anchor="middle">${f}</text>`);
- s+=`<text class="mm-f" x="${u/2}" y="55" text-anchor="middle">0</text>`;
- boxes.forEach((b,i)=>{const x=b.minF*u+2,w=(b.maxF-b.minF+1)*u-2,y=i%2?23:3,on=all||i===selIdx;
+ const rowEnd=[],rowOf=[];[...boxes.keys()].sort((a,b)=>boxes[a].minF-boxes[b].minF).forEach(i=>{let r=rowEnd.findIndex(e=>e<boxes[i].minF);if(r<0){r=rowEnd.length;rowEnd.push(-1);}rowEnd[r]=boxes[i].maxF;rowOf[i]=r;});
+ const nr=Math.max(1,rowEnd.length),nh=nr*20+4;
+ const u=26,W=(EXF+1)*u+4,H=nh+14;let s=`<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Where each box sits on the neck">`;
+ s+=`<rect class="mm-neck" x="0" y="0" width="${W}" height="${nh}" rx="6"></rect>`;
+ [3,5,7,9,12,15,17,19,21].forEach(f=>s+=`<text class="mm-f" x="${f*u+u/2}" y="${nh+11}" text-anchor="middle">${f}</text>`);
+ s+=`<text class="mm-f" x="${u/2}" y="${nh+11}" text-anchor="middle">0</text>`;
+ boxes.forEach((b,i)=>{const x=b.minF*u+2,w=(b.maxF-b.minF+1)*u-2,y=3+rowOf[i]*20,on=all||i===selIdx;
   s+=`<g data-bx="${i}" style="cursor:pointer"><rect class="mm-box${on?' on':''}" x="${x}" y="${y}" width="${w}" height="18" rx="4"></rect><text class="mm-t${on?' on':''}" x="${x+w/2}" y="${y+13}" text-anchor="middle">${b.name.replace('Box ','')}</text></g>`;});
  return s+'</svg>';}
 function renderPractice(c){
@@ -1119,32 +1241,28 @@ function renderPractice(c){
   if(ogs.length){if(S.octPos==null||S.octPos>=ogs.length){let bi=0;ogs.forEach((g,i)=>{if(g.score<ogs[bi].score)bi=i;});S.octPos=bi;}const og=ogs[S.octPos];window.__ogMin=og.minF;
    const st=d=>{S.octPos=(S.octPos+d+ogs.length)%ogs.length;save();renderExplorer();};
    const r2=row();r2.appendChild(nav(`Position ${S.octPos+1} of ${ogs.length} · frets ${og.minF}–${og.maxF}`,()=>st(-1),()=>st(1)));
-   r2.appendChild(el('button',{class:'btn sm',onclick:()=>{og.pts.forEach((x,i)=>pluck(freq(x[2]),i*.22,.8,.22));og.pts.slice(0,-1).reverse().forEach((x,i)=>pluck(freq(x[2]),(og.pts.length+i)*.22,.8,.22));}},'▶ Play up and down'));
+   P.appendChild(playControls(og.pts));
    board=boardSVG(tun,marks,EXF,{range,keep:new Set(og.pts.map(x=>x[0]+','+x[1])),boxes:[{minF:og.minF,maxF:og.maxF,label:'Play these'}],lines:[{pts:og.pts.map(x=>[x[0],x[1]]),hl:true,c:'run'}],sel:S.selMidi,octNum:true});
    txt=`<b>${og.pts.length} notes</b> from <b>${nmM(range[0])}</b> up to <b>${nmM(range[1])}</b>, each once, with your hand at frets ${og.minF}–${og.maxF}. Follow the line from the thickest string to the thinnest. Use ◀ ▶ to play the same octave somewhere else on the neck.`;}
   else{board=boardSVG(tun,marks,EXF,{range,sel:S.selMidi,octNum:true});txt=`Lit: the notes from <b>${nmM(range[0])}</b> to <b>${nmM(range[1])}</b>.`;}
  } else if(S.pmode==='box'){
-  if(S.boxIdx==null||S.boxIdx>=boxes.length){const i=boxes.findIndex(b=>b.k===0&&b.minF>=3);S.boxIdx=i>=0?i:0;}
+  if(S.boxIdx==null||S.boxIdx>=boxes.length)S.boxIdx=0;
   const b=boxes[S.boxIdx],nx=boxes[S.boxIdx+1];
   const mm=el('div',{class:'mm-wrap'},miniMapSVG(boxes,S.boxIdx,S.boxAll));
   mm.addEventListener('click',e=>{const g=e.target.closest('[data-bx]');if(!g)return;S.boxIdx=+g.dataset.bx;S.boxAll=false;S.selMidi=null;save();renderExplorer();});
   P.appendChild(el('span',{class:'lbl'},'Tap a box on the map, or step through them'));P.appendChild(mm);
   const st=d=>{S.boxIdx=(S.boxIdx+d+boxes.length)%boxes.length;S.boxAll=false;S.selMidi=null;save();renderExplorer();};
   const r2=row();r2.appendChild(nav(`${b.name} · frets ${b.minF}–${b.maxF}`,()=>st(-1),()=>st(1)));
-  r2.appendChild(el('button',{class:'btn sm',onclick:()=>{const seq=[...b.ms,...b.ms.slice(0,-1).reverse()];seq.forEach((m,i)=>pluck(freq(m),i*.2,.8,.22));}},'▶ Play box'));
-  const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.boxAll;cb.onchange=()=>{S.boxAll=cb.checked;save();renderExplorer();};lab.append(cb,document.createTextNode('Show all boxes on the neck'));r2.appendChild(lab);
+  const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.boxAll;cb.onchange=()=>{S.boxAll=cb.checked;save();renderExplorer();};lab.append(cb,document.createTextNode('Show all boxes on the neck'));r2.appendChild(lab);P.appendChild(playControls(b.pts));
   board=S.boxAll?boardSVG(tun,marks,EXF,{boxes:boxes.map((x,i)=>({minF:x.minF,maxF:x.maxF,alt:i%2===1,label:x.name})),sel:S.selMidi}):boardSVG(tun,marks,EXF,{keep:b.keys,boxes:[{minF:b.minF,maxF:b.maxF,label:b.name}],sel:S.selMidi,octNum:true});
   const uniq=new Set(boxes.map(x=>x.k)).size;
-  txt=`<ol class="steps"><li><b>Learn the shape:</b> press ▶ Play box and play along, slowly, up and down.</li><li><b>Start the jam</b> below and improvise using only the lit notes.</li><li><b>Land on the gold roots</b> to start and end phrases, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes.</li><li><b>Move on:</b> ${nx?`▶ takes you to ${nx.name}, which overlaps this one`:'◀ goes back to the lower boxes'}. Sliding between neighbouring boxes is how you travel the neck.</li></ol><span class="empty">The scale has ${uniq} boxes. "(2)" is the same box an octave (12 frets) higher.</span>`;
+  txt=`<ol class="steps"><li><b>Learn the shape:</b> press ▶ Play and follow the lit dots, slowly, in both directions.</li><li><b>Start the jam</b> below and improvise using only the lit notes.</li><li><b>Land on the gold roots</b> to start and end phrases, lean on the coloured 3rds and 5ths, and pass quickly over the dark notes.</li><li><b>Move on:</b> ${nx?`▶ takes you to ${nx.name}, which overlaps this one`:'◀ goes back to the lower boxes'}. Sliding between neighbouring boxes is how you travel the neck.</li></ol><span class="empty">The scale has ${uniq} boxes, numbered from Box 1, which starts on the root. "(high)" is the same box 12 frets higher, "(low)" the same box 12 frets lower, near the nut.</span>`;
  } else {
   if(S.runIdx==null||S.runIdx>=runs.length)S.runIdx=0;const r=runs[S.runIdx];
   const g=el('div',{class:'routes'});
   runs.forEach((x,i)=>{const b=el('button',{class:'route','aria-pressed':String(i===S.runIdx)},`<b>${x.name}</b><small>${x.per.slice().reverse().join(' · ')} notes per string (thin → thick)</small>`);b.onclick=()=>{S.runIdx=i;save();renderExplorer();};g.appendChild(b);});
   P.appendChild(el('span',{class:'lbl'},`${runs.length} routes from the lowest note to the highest`));P.appendChild(g);
-  const r2=row();
-  const playRun=dir=>{const seq=dir>0?r.pts:r.pts.slice().reverse();seq.forEach((x,i)=>pluck(freq(x[2]),i*(S.runSlow?.3:.17),.75,.22));};
-  r2.append(el('button',{class:'btn sm',onclick:()=>playRun(1)},'▶ Play up'),el('button',{class:'btn ghost sm',onclick:()=>playRun(-1)},'▶ Play down'));
-  const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.runSlow;cb.onchange=()=>{S.runSlow=cb.checked;save();};lab.append(cb,document.createTextNode('Slow'));r2.appendChild(lab);
+  P.appendChild(playControls(r.pts));
   board=boardSVG(tun,marks,EXF,{keep:new Set(r.pts.map(x=>x[0]+','+x[1])),lines:[{pts:r.pts.map(x=>[x[0],x[1]]),hl:true,c:'run'}],rings:new Set(r.shifts.map(x=>x[0]+','+x[1])),sel:S.selMidi,octNum:true});
   const a=r.pts[0],z=r.pts[r.pts.length-1];
   txt=`<b>${r.name}.</b> ${r.desc} <b>${r.pts.length} notes</b> from <b>${nmM(a[2])}</b> (string ${tun.length}, fret ${a[1]}) to <b>${nmM(z[2])}</b> (string 1, fret ${z[1]}), every pitch once.${r.shifts.length?` The <b>${r.shifts.length} dashed rings</b> mark position shifts: slide the same finger up the string into that note.`:''}`;
@@ -1157,19 +1275,7 @@ function renderPractice(c){
  if(S.selMidi!=null){const m=S.selMidi,pl=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=EXF)pl.push(`string ${tun.length-s} fret ${f}`);});
   txt=`<b>${nmM(m)}</b> (${freq(m).toFixed(1)} Hz) is ringed in ${pl.length} place${pl.length>1?'s':''}: ${pl.join(', ')}. Same pitch, different string. Tap it again to clear.`;}
  info.innerHTML=txt;
- // jam
- const jam=$('#ex-jam');jam.innerHTML='';const opts=jamOptions(it);if(S.jamIdx==null||S.jamIdx>=opts.length)S.jamIdx=0;if(!S.jamBpm)S.jamBpm=90;
- const prog=opts[S.jamIdx];const chName=([off,t])=>pretty(spellIv(S.root,REL_LBL[off])+CH[t].sym);
- const h=el('div',{class:'pr-row'});h.appendChild(el('h3',{},'Jam over it'));
- const sel=el('select',{id:'jam-prog','aria-label':'Backing progression'});opts.forEach((o,i)=>sel.appendChild(el('option',{value:String(i)},`${o.name} · ${[...new Map(o.ch.map(x=>[x.join(),x])).values()].map(chName).join(' ')}`)));sel.value=String(S.jamIdx);
- sel.onchange=()=>{S.jamIdx=+sel.value;save();renderExplorer();};
- const bpm=el('input',{type:'number',id:'jam-bpm',min:'50',max:'200',value:String(S.jamBpm),style:'width:68px','aria-label':'Jam BPM'});bpm.onchange=()=>{const v=Math.round(+bpm.value);if(v>=50&&v<=200){S.jamBpm=v;save();}};
- const key=S.root+'|'+it.id+'|'+S.jamIdx;
- const go=el('button',{class:'btn'+(JAM.on?' ghost':''),id:'jam-go'},JAM.on?'■ Stop jam':'▶ Start jam');go.onclick=()=>{if(JAM.on)jamStop();else jamStart(prog,rootPc,S.root,key);};
- h.append(sel,el('span',{class:'lbl'},'BPM'),bpm,go);jam.appendChild(h);
- const chips=el('div',{class:'row',style:'gap:6px'});prog.ch.forEach(x=>chips.appendChild(el('span',{class:'jamchip'},chName(x))));jam.appendChild(chips);
- jam.appendChild(el('p',{class:'empty'},'A backing track loops in the background. Improvise with the lit notes: play along on your guitar, or tap the dots.'));
- if(JAM.on&&JAM.key!==key)jamStart(prog,rootPc,S.root,key);
+ renderJam(it,rootPc);
 }
 
 /* ---------- explorer ---------- */
@@ -2220,7 +2326,7 @@ const VIEWS=['explore','finder','keys','tabs','tuner','circle','song'];
 function show(v){if(!VIEWS.includes(v))v='explore';S.view=v;save();
  VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v;});
  $$('[data-v]').forEach(b=>{if(b.dataset.v===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
- if(v!=='song'&&playTimer)stopPlay();if(v!=='explore'&&JAM.on)jamStop();
+ if(v!=='song'&&playTimer)stopPlay();if(v!=='explore'){if(JAM.on)jamStop();seqStop();}
  if(v==='explore')renderExplorer();if(v==='finder')renderFinder();if(v==='keys')renderKeys();if(v==='tuner')renderTuner();if(v==='circle')renderCircle();if(v==='song')renderSong();if(v==='tabs')renderTabs();if(v!=='tabs'&&PB.playing)tbPause();
  try{window.scrollTo(0,0);}catch(e){}nutScroll();}
 go=v=>{show(v);try{if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);}catch(e){}};
