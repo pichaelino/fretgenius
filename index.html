@@ -93,6 +93,14 @@ nav.tabs button .s{display:none}
 nav.tabs button:hover{color:var(--ink);background:var(--surface-2)}
 nav.tabs button[aria-current="page"]{color:var(--on-accent);background:var(--accent)}
 .bottom-nav{display:none}
+.sg-float{position:fixed;left:50%;bottom:16px;transform:translate(-50%,140%);z-index:19;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .22s ease;max-width:calc(100vw - 24px)}
+.sg-float.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.sg-float #sgf-play{border-radius:999px;min-width:92px}
+.sgf-now{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sgf-now small{color:var(--muted);font-weight:500}
+.sgf-bpm{display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap}
+.sgf-bpm small{color:var(--muted)}
+.sgf-bpm .btn{padding:2px 9px;border-radius:999px}
 @media (max-width:760px){
   header.top nav.tabs{display:none}
   .bottom-nav{display:block;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(0,0,0,.08);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
@@ -187,6 +195,14 @@ svg .dt.c3,svg .dt.c5,svg .dt.c7{fill:var(--iv-ink)}
 .ivlegend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);align-items:center}
 .ivlegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-2px}
 .ivhelp{font-size:14px;color:var(--muted);max-width:80ch}
+details.help{font-size:13.5px;color:var(--muted);max-width:80ch;flex-basis:100%}
+details.help>summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px;list-style:none;display:inline-flex;align-items:center;gap:5px;padding:4px 0;user-select:none}
+details.help>summary::-webkit-details-marker{display:none}
+details.help>summary::before{content:'▸';transition:transform .15s}
+details.help[open]>summary::before{transform:rotate(90deg)}
+details.help .help-body{padding:4px 0 2px 14px;border-left:2px solid var(--line,rgba(127,127,127,.3));margin:2px 0 4px 4px;line-height:1.5}
+details.help .help-body p{margin:0 0 6px}
+.pr-short{font-size:14px;margin:0 0 4px}
 .ivhelp b{color:var(--ink)}
 .vname{font:700 15px/1.1 var(--f-body);color:var(--ink)}
 .vpos{font:500 11px var(--f-body);color:var(--muted);text-align:center}
@@ -553,7 +569,7 @@ svg .mtog.muted text{fill:var(--bad)}
   </div>
   <div class="neckbar" id="fd-neck"></div>
   <div class="board-wrap" id="fd-board"></div>
-  <p class="empty" style="margin-top:-8px">× = muted (not played) · ○ = open string · tap a placed dot again to remove it · dashed rings show where a suggested note could go.</p>
+  <details class="help" style="margin-top:-8px"><summary>How to use</summary><div class="help-body">× = muted (not played) · ○ = open string · tap a placed dot again to remove it · dashed rings show where a suggested note could go.</div></details>
   <div class="sgrid">
     <div class="panel" id="fd-result"></div>
     <div class="panel" id="fd-suggest"></div>
@@ -717,6 +733,7 @@ svg .mtog.muted text{fill:var(--bad)}
   </div>
   <div class="panel" id="sg-shapes"></div>
   <div class="panel sg-neck" id="sg-neck"></div>
+  <div class="sg-float" id="sg-float" aria-hidden="true"><button class="btn" id="sgf-play">▶ Play</button><span class="sgf-now" id="sgf-now"></span><span class="sgf-bpm"><button class="btn ghost sm" id="sgf-dn" aria-label="Slower">−</button><b id="sgf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="sgf-up" aria-label="Faster">+</button></span></div>
   <div class="sgrid">
     <div class="col">
       <div class="panel" id="sg-key"></div>
@@ -1130,7 +1147,7 @@ function neckBar(sel){const box=$(sel);if(!box)return;box.innerHTML='';
  const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.lefty;cb.onchange=()=>{S.lefty=cb.checked;save();rerenderView();nutScroll();};
  lab.append(cb,document.createTextNode('Left-handed'));box.appendChild(lab);
  const wg=el('span',{class:'row',style:'gap:6px'});wg.appendChild(el('span',{class:'lbl'},'Fretboard '+tipBtn('wood')));const ws=el('select',{'aria-label':'Fretboard colour'});WOODS.forEach(([v,l])=>ws.appendChild(el('option',{value:v},l)));ws.value=S.wood;ws.onchange=()=>{S.wood=ws.value;save();applyTheme();};wg.appendChild(ws);box.appendChild(wg);
- box.appendChild(el('span',{class:'nb-hint'},S.neck==='player'?'Thickest string on top, as you look down at your guitar.':'Thinnest string on top, the same order as tabs.'));}
+}
 
 /* ---------- full-neck routes ---------- */
 function runDP(P,tun,pr){
@@ -1298,7 +1315,7 @@ function renderJam(it,rootPc){
  jam.appendChild(r3);
  const beats=el('div',{class:'row jbeats',style:'gap:6px'});const nb=tsSlots(S.jamTS)/tsBeatSlots(S.jamTS);for(let i=0;i<nb;i++)beats.appendChild(el('span',{class:'jbeat'+(i===0?' one':'')},String(i+1)));
  jam.appendChild(beats);
- jam.appendChild(el('p',{class:'empty'},'The backing track loops in the background. Improvise with the lit notes on the neck: play along on your guitar, or tap the dots. Tempo changes apply from the next bar.'));
+
  if(JAM.on&&JAM.key!==key)jamStart(prog,rootPc,key);
 }
 
@@ -1336,7 +1353,7 @@ function renderPractice(c){
  [['all','Whole neck'],['oct','One octave'],['box','Boxes'],['run','Full-neck runs']].forEach(([k,l])=>{const b=el('button',{'aria-pressed':String(S.pmode===k)},l);
   if((k==='box'&&!boxes.length)||(k==='run'&&!runs.length)){b.disabled=true;b.title='Not available for this scale';}
   b.onclick=()=>{S.pmode=k;S.selMidi=null;save();renderExplorer();};mb.appendChild(b);});
- const P=$('#ex-pctl');P.innerHTML='';const info=$('#ex-octinfo');window.__ogMin=null;let board='',txt='';
+ const P=$('#ex-pctl');P.innerHTML='';const info=$('#ex-octinfo');window.__ogMin=null;let board='',txt='',short='';
  const nmM=m=>nameOf(m)+octOf(m,S.root);
  const row=()=>{const r=el('div',{class:'pr-row'});P.appendChild(r);return r;};
  const nav=(label,prev,next)=>{const r=el('div',{class:'row',style:'gap:6px'});r.append(el('button',{class:'btn ghost sm','aria-label':'Previous',onclick:prev},'◀'),el('b',{class:'pr-cur'},label),el('button',{class:'btn ghost sm','aria-label':'Next',onclick:next},'▶'));return r;};
@@ -1354,14 +1371,14 @@ function renderPractice(c){
    const r2=row();r2.appendChild(nav(`Position ${S.octPos+1} of ${ogs.length} · frets ${og.minF}–${og.maxF}`,()=>st(-1),()=>st(1)));
    P.appendChild(playControls(og.pts));
    board=boardSVG(tun,marks,EXF,{fcols:boxes.length>0,range,keep:new Set(og.pts.map(x=>x[0]+','+x[1])),boxes:[{minF:og.minF,maxF:og.maxF,label:'Play these'}],lines:[{pts:og.pts.map(x=>[x[0],x[1]]),hl:true,c:'run'}],sel:S.selMidi,octNum:true});
-   txt=`<b>${og.pts.length} notes</b> from <b>${nmM(range[0])}</b> up to <b>${nmM(range[1])}</b>, each once, with your hand at frets ${og.minF}–${og.maxF}. Follow the line from the thickest string to the thinnest. Use ◀ ▶ to play the same octave somewhere else on the neck.`;}
-  else{board=boardSVG(tun,marks,EXF,{fcols:boxes.length>0,range,sel:S.selMidi,octNum:true});txt=`Lit: the notes from <b>${nmM(range[0])}</b> to <b>${nmM(range[1])}</b>.`;}
+   short=`<b>${og.pts.length} notes</b> · ${nmM(range[0])} → ${nmM(range[1])}`;txt=`Each note is played once, with your hand at frets ${og.minF}–${og.maxF}. Follow the line from the thickest string to the thinnest. Use ◀ ▶ to play the same octave somewhere else on the neck.`;}
+  else{board=boardSVG(tun,marks,EXF,{fcols:boxes.length>0,range,sel:S.selMidi,octNum:true});short=`${nmM(range[0])} → ${nmM(range[1])}`;}
  } else if(S.pmode==='box'){
   if(S.boxIdx==null||S.boxIdx>=boxes.length)S.boxIdx=0;
   const b=boxes[S.boxIdx],nx=boxes[S.boxIdx+1];
   const mm=el('div',{class:'mm-wrap'},miniMapSVG(boxes,S.boxIdx,S.boxAll));
   mm.addEventListener('click',e=>{const g=e.target.closest('[data-bx]');if(!g)return;S.boxIdx=+g.dataset.bx;S.boxAll=false;S.selMidi=null;save();renderExplorer();});
-  P.appendChild(el('span',{class:'lbl'},'Tap a box on the map, or step through them '+tipBtn('box')));P.appendChild(mm);
+  P.appendChild(el('span',{class:'lbl'},'Box map '+tipBtn('box')));P.appendChild(mm);
   const st=d=>{S.boxIdx=(S.boxIdx+d+boxes.length)%boxes.length;S.boxAll=false;S.selMidi=null;save();renderExplorer();};
   const r2=row();r2.appendChild(nav(`${b.name} · frets ${b.minF}–${b.maxF}`,()=>st(-1),()=>st(1)));
   const lab=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.boxAll;cb.onchange=()=>{S.boxAll=cb.checked;save();renderExplorer();};lab.append(cb,document.createTextNode('Show all boxes on the neck'));r2.appendChild(lab);P.appendChild(playControls(b.pts));
@@ -1376,7 +1393,7 @@ function renderPractice(c){
   P.appendChild(playControls(r.pts));
   board=boardSVG(tun,marks,EXF,{fcols:boxes.length>0,keep:new Set(r.pts.map(x=>x[0]+','+x[1])),lines:[{pts:r.pts.map(x=>[x[0],x[1]]),hl:true,c:'run'}],rings:new Set(r.shifts.map(x=>x[0]+','+x[1])),sel:S.selMidi,octNum:true});
   const a=r.pts[0],z=r.pts[r.pts.length-1];
-  txt=`<b>${r.name}.</b> ${r.desc} <b>${r.pts.length} notes</b> from <b>${nmM(a[2])}</b> (string ${tun.length}, fret ${a[1]}) to <b>${nmM(z[2])}</b> (string 1, fret ${z[1]}), every pitch once.${r.shifts.length?` The <b>${r.shifts.length} dashed rings</b> mark position shifts: slide the same finger up the string into that note.`:''}`;
+  short=`<b>${r.pts.length} notes</b> · ${nmM(a[2])} → ${nmM(z[2])}${r.shifts.length?` · ${r.shifts.length} shift${r.shifts.length>1?'s':''}`:''}`;txt=`${r.desc} From string ${tun.length}, fret ${a[1]} to string 1, fret ${z[1]}, every pitch once.${r.shifts.length?` The <b>${r.shifts.length} dashed rings</b> mark position shifts: slide the same finger up the string into that note.`:''}`;
  }
  $('#ex-board').innerHTML=board;
  {let f0=null;if(S.pmode==='box'&&!S.boxAll&&boxes[S.boxIdx])f0=boxes[S.boxIdx].minF;
@@ -1385,7 +1402,7 @@ function renderPractice(c){
   else if(S.pmode==='all'||S.pmode==='run')w.scrollLeft=S.lefty?w.scrollWidth:0;}
  if(S.selMidi!=null){const m=S.selMidi,pl=[];tun.forEach((t,s)=>{const f=m-t;if(f>=0&&f<=EXF)pl.push(`string ${tun.length-s} fret ${f}`);});
   txt=`<b>${nmM(m)}</b> (${freq(m).toFixed(1)} Hz) is ringed in ${pl.length} place${pl.length>1?'s':''}: ${pl.join(', ')}. Same pitch, different string. Tap it again to clear.`;}
- info.innerHTML=txt;
+ info.innerHTML='';if(S.selMidi!=null)info.innerHTML=txt;else{if(short)info.appendChild(el('p',{class:'pr-short'},short));if(txt)info.appendChild(helpBox('How to practise',txt,'practice-'+S.pmode));}
  renderJam(it,rootPc);
 }
 
@@ -1432,7 +1449,7 @@ function renderExplorer(){
  const fbox=$('#ex-formula');fbox.innerHTML='';
  it.f.forEach((l,i)=>{const c=ivCat(l);fbox.appendChild(el('div',{class:'chip '+c},`<b>${notes[i]}</b><small>${pretty(l==='1'?'R':l)}</small><em>${IVNAME[l]}</em><em>${IV[l]===0?'start':'+'+IV[l]+' fret'+(IV[l]>1?'s':'')}</em>`));});
  const ex=it.f.find(l=>l.startsWith('b'))||it.f[1];
- fbox.appendChild(el('p',{class:'ivhelp',style:'flex-basis:100%;margin-top:4px'},`Each box is one note. The top line is its name, below is its <b>interval</b>: how far it is from the root (<b>R</b> = ${notes[0]}). A <b>♭</b> means one fret lower than the normal (major-scale) step, a <b>♯</b> one fret higher. Example: <b>${pretty(ex)}</b> is the ${IVNAME[ex]}, so it sits <b>${IV[ex]} fret${IV[ex]>1?'s':''} above ${notes[0]}</b> on the same string, which is ${notes[it.f.indexOf(ex)]}.`));
+ fbox.appendChild(helpBox('What do these boxes mean?',`Each box is one note. The top line is its name, below is its <b>interval</b>: how far it is from the root (<b>R</b> = ${notes[0]}). A <b>♭</b> means one fret lower than the normal (major-scale) step, a <b>♯</b> one fret higher. Example: <b>${pretty(ex)}</b> is the ${IVNAME[ex]}, so it sits <b>${IV[ex]} fret${IV[ex]>1?'s':''} above ${notes[0]}</b> on the same string, which is ${notes[it.f.indexOf(ex)]}.`,'formula'));
  const marks=new Map();it.f.forEach((l,i)=>{const pc=(rootPc+IV[l])%12;if(!marks.has(pc))marks.set(pc,{lab:S.label==='notes'?notes[i]:pretty(l==='1'?'R':l),root:i===0,cat:ivCat(l)});});
  const tun=tuning();
  const lo=Math.min(...tun),hi=Math.max(...tun)+EXF;const spans=[];for(let r=rootPc;r<=hi;r+=12)if(r>=lo)spans.push(r);
@@ -1463,11 +1480,11 @@ function renderExplorer(){
   tp.appendChild(el('div',{class:'ivlegend'},`<span><i class="ln r0"></i>Root position: root at the bottom</span><span><i class="ln r1"></i>1st inversion: 3rd at the bottom</span><span><i class="ln r2"></i>2nd inversion: 5th at the bottom</span><span>Strings are numbered from the thinnest (1 = high E).</span>`));
  } else renderPractice({it,rootPc,tun,marks,nameOf:m=>pcName.get(m%12)||pretty(AUTO[m%12]),spans,rn});
  const cats=new Set(it.f.map(ivCat));
- $('#ex-legend').innerHTML=[['root','var(--root)','Root (home note)'],['c3','var(--iv3)','3rd: major or minor colour'],['c5','var(--iv5)','5th: power and stability'],['c7','var(--iv7)','7th: jazzy or bluesy tension'],['c0','var(--dot)','Other scale notes']].filter(x=>cats.has(x[0])).map(x=>`<span><i style="background:${x[1]}"></i>${x[2]}</span>`).join('')+`<span>Tap “Intervals” above to label dots with R, ♭3, 5…</span>`;
+ $('#ex-legend').innerHTML=[['root','var(--root)','Root (home note)'],['c3','var(--iv3)','3rd: major or minor colour'],['c5','var(--iv5)','5th: power and stability'],['c7','var(--iv7)','7th: jazzy or bluesy tension'],['c0','var(--dot)','Other scale notes']].filter(x=>cats.has(x[0])).map(x=>`<span><i style="background:${x[1]}"></i>${x[2]}</span>`).join('');
  const extra=$('#ex-extra');extra.innerHTML='';
  if(S.kind==='triads'){
   const n=tun.length,cname=pretty(S.root+it.sym);
-  extra.appendChild(el('p',{class:'ivhelp'},`A <b>triad</b> is the 3-note core of every chord: root, 3rd and 5th. On three neighbouring strings it makes a small shape you can move anywhere. Every group of strings has three shapes (root position, 1st and 2nd inversion) that link together up the neck and repeat every 12 frets. Tap a card to hear it and see it on the neck.`));
+  extra.appendChild(helpBox('What is a triad?',`A <b>triad</b> is the 3-note core of every chord: root, 3rd and 5th. On three neighbouring strings it makes a small shape you can move anywhere. Every group of strings has three shapes (root position, 1st and 2nd inversion) that link together up the neck and repeat every 12 frets. Tap a card to hear it and see it on the neck.`,'triads'));
   if(!tri.length)extra.appendChild(el('p',{class:'empty'},'No close 3-note shapes found here.'));
   const byK=new Map();tri.forEach((t,i)=>{if(!byK.has(t.k))byK.set(t.k,[]);byK.get(t.k).push([t,i]);});
   byK.forEach((list,k)=>{
@@ -1884,7 +1901,7 @@ function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const 
  box.appendChild(now);
  const wrap=el('div',{class:'board-wrap sgn-board'},v?boardSVG(tun,marks,F,{only,muted,ghosts}):'<p class="empty" style="padding:12px">No shape found for this chord.</p>');
  box.appendChild(wrap);
- box.appendChild(el('p',{class:'empty'},`Coloured dots: where to put your fingers (amber = root). × = don't play that string. ${playing?'The dots flash on each strum.':'Press ▶ Play progression and the neck follows the music, flashing on each strum. Tap any chord above to show it here.'}`));
+ box.appendChild(helpBox('How to read this',`Coloured dots: where to put your fingers (amber = root). × = don't play that string. ${playing?'The dots flash on each strum.':'Press ▶ Play progression and the neck follows the music, flashing on each strum. Tap any chord above to show it here.'}`,'sg-neck'));
  if(flash)sgFlash();
  $$('#sg-shapes .sg-card').forEach((x,i)=>x.classList.toggle('now',i===idx));
 }
@@ -1912,7 +1929,7 @@ function renderSongShapes(valid){
   nav.appendChild(el('button',{class:'btn ghost sm','aria-label':'Next shape',onclick:()=>step(1)},'▶'));
   card.appendChild(nav);g.appendChild(card);});
  box.appendChild(g);makeSortable(g,'.sg-card',songMove);
- box.appendChild(el('p',{class:'empty'},'Drag ⠿ to reorder the chords and × to remove one. Tap a diagram to hear it, or use ◀ ▶ for other ways to play the same chord. "Play progression" uses the shapes shown here. Fret numbers read from the thickest string to the thinnest, and × means don\'t play that string.'));
+ box.appendChild(helpBox('Tips','Drag ⠿ to reorder the chords and × to remove one. Tap a diagram to hear it, or use ◀ ▶ for other ways to play the same chord. "Play progression" uses the shapes shown here. Fret numbers read from the thickest string to the thinnest, and × means don\'t play that string.','sg-shapes'));
 }
 function modeHint(ch,key){
  const rels=ch.map(c=>({rel:(c.pc-key.t+12)%12,min:isMinorish(c),c}));
@@ -1991,19 +2008,28 @@ function transpose(n){const ch=curChords().filter(Boolean);if(!ch.length)return;
 $('#sg-up').onclick=()=>transpose(1);$('#sg-down').onclick=()=>transpose(-1);
 $('#sg-bpm').onchange=e=>{let v=+e.target.value;if(!(v>=40&&v<=220))v=90;S.bpm=v;save();};
 let sgSoftT=null;
-function stopPlay(){clearTimeout(playTimer);clearTimeout(sgSoftT);playTimer=null;setTimeout(()=>renderSongNeck(sgNeckIdx),0);$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';}
+function stopPlay(){clearTimeout(playTimer);clearTimeout(sgSoftT);playTimer=null;setTimeout(()=>renderSongNeck(sgNeckIdx),0);$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';sgfSync();}
+function sgfSync(){const b=$('#sgf-play');if(b)b.textContent=playTimer?'■ Stop':'▶ Play';$('#sgf-bpm').textContent=S.bpm;if(!playTimer)sgfNow();}
+function sgfNow(c,n){const x=$('#sgf-now');if(!x)return;if(!c){const ch=curChords().filter(Boolean);x.innerHTML=ch.length?`${ch.length} chords`:'';return;}x.innerHTML=`${chordLabel(c)}${n&&n!==c?` <small>→ ${chordLabel(n)}</small>`:''}`;}
+function sgfPos(){const f=$('#sg-float'),bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?bn.offsetHeight:0;f.style.bottom=(h+12)+'px';}
+$('#sgf-play').onclick=()=>$('#sg-play').click();
+const sgfBpm=d=>{S.bpm=Math.max(40,Math.min(220,S.bpm+d));$('#sg-bpm').value=S.bpm;save();sgfSync();};
+$('#sgf-dn').onclick=()=>sgfBpm(-5);$('#sgf-up').onclick=()=>sgfBpm(5);
+$('#sg-bpm').addEventListener('input',()=>setTimeout(sgfSync,0));
+if('IntersectionObserver' in window){new IntersectionObserver(es=>{const e=es[0];const f=$('#sg-float');const show=!e.isIntersecting&&e.boundingClientRect.top<0&&curChords().filter(Boolean).length>0;sgfPos();f.classList.toggle('on',show);f.setAttribute('aria-hidden',String(!show));},{threshold:0}).observe($('#sg-play'));}
+window.addEventListener('resize',sgfPos);sgfSync();
 $('#sg-play').onclick=()=>{
  if(playTimer){stopPlay();return;}
  const ch=curChords().filter(Boolean);if(!ch.length)return;ac();
- $('#sg-play').textContent='■ Stop';playIdx=0;const beat=60/S.bpm;
- const step=()=>{$$('.pc.playing').forEach(x=>x.classList.remove('playing'));
+ $('#sg-play').textContent='■ Stop';sgfSync();playIdx=0;const beat=60/S.bpm;
+ const step=()=>{const beat=60/S.bpm;$$('.pc.playing').forEach(x=>x.classList.remove('playing'));
   if(playIdx>=ch.length){playIdx=0;}
   const c=ch[playIdx];const chip=$(`.pc[data-i="${playIdx}"]`);chip&&chip.classList.add('playing');
   const mm=songMidis(c);
   strum(mm,0,.028,beat*2.2,.15);strum([...mm].reverse().slice(0,4),beat*2,.02,beat*2,.09);
-  const here=playIdx;playIdx++;playTimer=setTimeout(step,beat*4*1000);renderSongNeck(here,true);
+  const here=playIdx;sgfNow(c,ch[(playIdx+1)%ch.length]);playIdx++;playTimer=setTimeout(step,beat*4*1000);renderSongNeck(here,true);
   clearTimeout(sgSoftT);sgSoftT=setTimeout(()=>{if(playTimer)sgFlash(true);},beat*2*1000);};
- step();
+ step();sgfSync();
 };
 
 /* ---------- chord finder ---------- */
@@ -2466,8 +2492,8 @@ function renderKeys(){
  $('#kc-inv').checked=!!kc.inv;
  const show=kc.v==='all'?ids:[kc.v];
  const total=show.reduce((a,id)=>a+allShapes(rootPc,id,tun,kc.inv).length,0);
- const cagedNote=tun.join()===TU.std.n.join()?` Labels like <b>E shape</b> tell you which open chord the shape comes from ${tipBtn('caged')}.`:'';
- $('#kc-summary').innerHTML=`<b>${total} shapes</b> for ${show.length>1?`${show.length} ${KC_FAM[kc.fam].name.toLowerCase()} variants of ${pretty(kc.root)}`:pretty(kc.root+CH[show[0]].sym)} in ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'standard tuning'}. Shapes are grouped by where they sit on the neck. Tap one to hear it.${cagedNote}`;
+ const cagedNote=tun.join()===TU.std.n.join()?' '+tipBtn('caged'):'';
+ $('#kc-summary').innerHTML=`<b>${total} shapes</b> for ${show.length>1?`${show.length} ${KC_FAM[kc.fam].name.toLowerCase()} variants of ${pretty(kc.root)}`:pretty(kc.root+CH[show[0]].sym)} in ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'standard tuning'}.${cagedNote}`;
  const list=$('#kc-list');list.innerHTML='';
  const GROUPS=[['Open position',v=>v.frets.includes(0)&&v.mn<=4],['Frets 1–4',v=>v.mn<=4],['Frets 5–8',v=>v.mn<=8],['Frets 9–12',v=>v.mn<=12],['Frets 13+',v=>true]];
  show.forEach(id=>{
@@ -2540,6 +2566,7 @@ const TIPS={
  fingers:['Finger numbers','1 = index, 2 = middle, 3 = ring, 4 = little finger. A bar across several strings is a barre: one finger, usually the index, presses them all at once.'],
  dir:['Direction','Low → high plays from the lowest pitch up, High → low from the highest down, Up & down goes up and comes back.'],
  note:['Note','The root of the chord you want to see.']};
+function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
 const TIP=document.createElement('div');TIP.className='tip-pop';TIP.hidden=true;TIP.setAttribute('role','tooltip');document.body.appendChild(TIP);let tipFor=null;
 function showTip(b){const t=TIPS[b.dataset.tip];if(!t)return;tipFor=b;TIP.innerHTML=`<b>${t[0]}</b><span>${t[1]}</span>`;TIP.hidden=false;
