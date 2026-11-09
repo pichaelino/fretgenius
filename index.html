@@ -42,12 +42,17 @@ button,select,input{font:inherit;color:inherit}
 .wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-header.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:10px}
+header.top .wrap{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding-block:10px}
+.lang-sw button{padding:6px 9px;font-size:12px;white-space:nowrap}
+@media (min-width:761px) and (max-width:1460px){header.top nav.tabs button svg{display:none}}
+@media (min-width:761px) and (max-width:1200px){#hdr-a4{display:none}header.top nav.tabs button{padding:9px 7px}}
+@media (max-width:760px){.lang-sw{margin-left:auto}}
+@media (max-width:460px){#hdr-a4{display:none}}
 .brand{display:flex;align-items:baseline;gap:10px}
 .brand b{font:800 28px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
 .brand span{font:500 11px/1 var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 nav.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-nav.tabs button{display:flex;align-items:center;gap:7px;border:0;background:transparent;font:600 13px/1 var(--f-body);color:var(--muted);padding:9px 12px;border-radius:6px;letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+nav.tabs button{display:flex;align-items:center;gap:6px;border:0;background:transparent;font:600 13px/1 var(--f-body);color:var(--muted);padding:9px 9px;border-radius:6px;letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 nav.tabs button svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button .s{display:none}
 nav.tabs button:hover{color:var(--ink);background:var(--surface-2)}
@@ -332,6 +337,7 @@ svg .mtog.muted text{fill:var(--bad)}
 <header class="top">
   <div class="wrap">
     <div class="brand"><b>Fretwise</b><span id="hdr-a4">A4 = 440 Hz</span></div>
+    <div class="seg lang-sw" id="lang-sw" role="group" aria-label="Note names"><button type="button" data-lang="en" title="English note names">C D E</button><button type="button" data-lang="it" title="Nomi italiani delle note">Do Re Mi</button></div>
     <nav class="tabs" aria-label="Tools" id="nav-top"></nav>
   </div>
 </header>
@@ -483,7 +489,7 @@ svg .mtog.muted text{fill:var(--bad)}
     <div class="panel">
       <div class="toolbar">
         <div class="group" style="flex:1 1 220px"><label class="lbl" for="tu-tuning">Tuning</label><select id="tu-tuning" class="tuning-sel"></select></div>
-        <div class="group"><label class="lbl" for="tu-a4">Reference A4</label>
+        <div class="group"><label class="lbl" for="tu-a4">Reference <span data-n="A4">A4</span></label>
           <div class="a4"><input type="number" id="tu-a4" min="400" max="480" step="1" value="440"><span class="mono">Hz</span><button class="btn ghost sm" id="tu-a4-reset">440</button></div>
         </div>
       </div>
@@ -527,13 +533,13 @@ svg .mtog.muted text{fill:var(--bad)}
   <div class="panel">
     <h2>How the circle works</h2>
     <div class="explain">
-      <article><h4>Reading it</h4><p>Go clockwise and every step goes up a perfect fifth (seven frets): C, G, D, A and on around. Go counter-clockwise and each step goes up a fourth instead. After twelve steps you are back at C, which is why it closes into a circle.</p></article>
-      <article><h4>Sharps and flats</h4><p>Each clockwise step adds one sharp to the key signature, and each counter-clockwise step adds one flat. G has one sharp, D has two, F has one flat, B♭ has two. At the bottom, F♯ and G♭ are the same notes with different names.</p></article>
-      <article><h4>Relative minors</h4><p>The inner ring shows the minor key that shares the same notes as the major key beside it. A minor and C major use exactly the same seven notes; the difference is which note feels like home. The relative minor always sits three frets below the major.</p></article>
+      <article><h4>Reading it</h4><p>Go clockwise and every step goes up a perfect fifth (seven frets): <span data-n="C">C</span>, <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and on around. Go counter-clockwise and each step goes up a fourth instead. After twelve steps you are back at <span data-n="C">C</span>, which is why it closes into a circle.</p></article>
+      <article><h4>Sharps and flats</h4><p>Each clockwise step adds one sharp to the key signature, and each counter-clockwise step adds one flat. <span data-n="G">G</span> has one sharp, <span data-n="D">D</span> has two, <span data-n="F">F</span> has one flat, <span data-n="Bb">B♭</span> has two. At the bottom, <span data-n="F#">F♯</span> and <span data-n="Gb">G♭</span> are the same notes with different names.</p></article>
+      <article><h4>Relative minors</h4><p>The inner ring shows the minor key that shares the same notes as the major key beside it. <span data-n="A">A</span> minor and <span data-n="C">C</span> major use exactly the same seven notes; the difference is which note feels like home. The relative minor always sits three frets below the major.</p></article>
       <article><h4>Building progressions</h4><p>The selected key and its two neighbours give you the six most useful chords: I, IV and V on the outside, and ii, iii and vi on the inside. Almost every pop, rock and folk song in that key lives in this little wedge, plus the diminished vii°.</p></article>
-      <article><h4>Changing key</h4><p>Keys next to each other share six of their seven notes, so moving one step around the circle is the smoothest key change. Jumping across the circle (C to F♯) sounds dramatic because the keys share almost nothing.</p></article>
-      <article><h4>Hearing the pull</h4><p>Chord movement counter-clockwise (G to C, D to G) is the strongest resolution in music: the V–I cadence. Chains like E7–A7–D7–G7–C walk counter-clockwise around the circle and are the backbone of jazz and ragtime.</p></article>
-      <article><h4>On the guitar</h4><p>Guitar-friendly keys cluster at the top right: G, D, A and E, with their open strings. A capo shifts everything up the circle's chromatic order, so you can play G shapes and sound in A with the capo at fret 2.</p></article>
+      <article><h4>Changing key</h4><p>Keys next to each other share six of their seven notes, so moving one step around the circle is the smoothest key change. Jumping across the circle (<span data-n="C">C</span> to <span data-n="F#">F♯</span>) sounds dramatic because the keys share almost nothing.</p></article>
+      <article><h4>Hearing the pull</h4><p>Chord movement counter-clockwise (<span data-n="G">G</span> to <span data-n="C">C</span>, <span data-n="D">D</span> to <span data-n="G">G</span>) is the strongest resolution in music: the V–I cadence. Chains like <span data-n="E7">E7</span>–<span data-n="A7">A7</span>–<span data-n="D7">D7</span>–<span data-n="G7">G7</span>–<span data-n="C">C</span> walk counter-clockwise around the circle and are the backbone of jazz and ragtime.</p></article>
+      <article><h4>On the guitar</h4><p>Guitar-friendly keys cluster at the top right: <span data-n="G">G</span>, <span data-n="D">D</span>, <span data-n="A">A</span> and <span data-n="E">E</span>, with their open strings. A capo shifts everything up the circle's chromatic order, so you can play <span data-n="G">G</span> shapes and sound in <span data-n="A">A</span> with the capo at fret 2.</p></article>
       <article><h4>Spotting borrowed chords</h4><p>Chords from one step counter-clockwise plus the parallel minor (♭VII, ♭VI, iv) are the classic "borrowed" colours in rock. The Song Builder flags them for you.</p></article>
     </div>
   </div>
@@ -605,7 +611,12 @@ const MAJ=[0,2,4,5,7,9,11], NMIN=[0,2,3,5,7,8,10];
 function parseNote(n){const li=LET.indexOf(n[0].toUpperCase());let a=0;for(const ch of n.slice(1)){if(ch==='#'||ch==='♯')a++;else if(ch==='b'||ch==='♭')a--;}return{li,pc:((NAT[li]+a)%12+12)%12};}
 const accA=a=>a>0?'#'.repeat(a):'b'.repeat(-a);
 function spellIv(root,label){const r=parseNote(root);const d=parseInt(label.replace(/\D/g,''),10);const li=(r.li+d-1)%7;const pc=(r.pc+IV[label])%12;let a=((pc-NAT[li])%12+12)%12;if(a>6)a-=12;return LET[li]+accA(a);}
-const pretty=s=>String(s).replace(/##/g,'𝄪').replace(/#/g,'♯').replace(/b/g,'♭');
+const IT_N={C:'Do',D:'Re',E:'Mi',F:'Fa',G:'Sol',A:'La',B:'Si'};
+const isIt=()=>typeof S!=='undefined'&&S&&S.lang==='it';
+const toItPlain=x=>String(x).replace(/(^|[^A-Za-z])([A-G])/g,(m,p,l)=>p+IT_N[l]);
+const pretty=s=>{let x=String(s);if(isIt())x=toItPlain(x);return x.replace(/##/g,'𝄪').replace(/#/g,'♯').replace(/b/g,'♭');};
+const trText=s=>isIt()?String(s).replace(/(^|[\s(,/–\-])([A-G])(?=[♯♭#b]?(?![A-Za-z]))/g,(m,p,l)=>p+IT_N[l]):String(s);
+const nameIn=x=>isIt()?toItPlain(x):x;
 const pcOf=n=>parseNote(n).pc;
 
 /* ---------- data ---------- */
@@ -615,7 +626,7 @@ const SCALES=[
  {id:'harmin',g:'Major & minor',name:'Harmonic minor',f:['1','2','b3','4','5','b6','7'],d:'Natural minor with a raised 7th. The jump from ♭6 to 7 gives it a classical, Middle-Eastern edge and a strong major V chord.'},
  {id:'melmin',g:'Major & minor',name:'Melodic minor',f:['1','2','b3','4','5','6','7'],d:'Minor with a raised 6th and 7th. Smooth and jazzy; in jazz it is played the same going up and down.'},
  {id:'majpent',g:'Pentatonic & blues',name:'Major pentatonic',f:['1','2','3','5','6'],d:'Five notes with no half steps, so nothing clashes. Country, folk and sunny rock solos live here.'},
- {id:'minpent',g:'Pentatonic & blues',name:'Minor pentatonic',f:['1','b3','4','5','b7'],d:'The first scale most guitarists learn. Box 1 at the 5th fret in A is the home of rock and blues soloing.'},
+ {id:'minpent',g:'Pentatonic & blues',name:'Minor pentatonic',f:['1','b3','4','5','b7'],d:'The first scale most guitarists learn. Box 1 at the 5th fret in {A} is the home of rock and blues soloing.'},
  {id:'blues',g:'Pentatonic & blues',name:'Blues',f:['1','b3','4','b5','5','b7'],d:'Minor pentatonic plus the ♭5 "blue note". Slide or bend through it for instant blues.'},
  {id:'majblues',g:'Pentatonic & blues',name:'Major blues',f:['1','2','b3','3','5','6'],d:'Major pentatonic with a ♭3 passing note. The sound of B.B.-style major-key blues and Southern rock.'},
  {id:'bebop',g:'Jazz & symmetrical',name:'Bebop dominant',f:['1','2','3','4','5','6','b7','7'],d:'Mixolydian with an added major 7th as a passing tone, so chord tones land on the beat in eighth-note lines.'},
@@ -923,7 +934,7 @@ function boardSVG(tun,marks,frets=15,opt={}){
  s+=`<rect class="nut" x="${nutX-5}" y="${top-10}" width="6" height="${boardH+20}" rx="1"></rect>`;
  for(let i=0;i<n;i++){const st=n-1-i,y=top+i*sg;const w=1+Math.max(0,(n-1-i))*0.35*(6/n);
   s+=`<line class="str" x1="${nutX-26}" x2="${nutX+frets*fw}" y1="${y}" y2="${y}" stroke-width="${w.toFixed(2)}"></line>`;
-  s+=`<text class="sn" x="8" y="${y+4}">${pretty(AUTO[tun[st]%12])}</text>`;}
+  s+=`<text class="sn" x="${isIt()?2:8}" y="${y+4}">${pretty(AUTO[tun[st]%12])}</text>`;}
  const PX=f=>f===0?nutX-24:nutX+(f-.5)*fw,PY=st=>top+(n-1-st)*sg;
  if(opt.boxes)opt.boxes.forEach((B,bi)=>{const x1=B.minF===0?nutX-38:nutX+(B.minF-1)*fw+3,x2=B.maxF===0?nutX-8:nutX+B.maxF*fw-3;s+=`<rect class="boxr${B.alt?' alt':''}" x="${x1}" y="${top-14}" width="${x2-x1}" height="${boardH+28}" rx="8"></rect>`;if(B.label)s+=`<text class="boxl${B.alt?' alt':''}" x="${(x1+x2)/2}" y="${top+boardH+44}" text-anchor="middle">${B.label}</text>`;});
  if(opt.lines)opt.lines.forEach(L=>{s+=`<polyline class="tline ${L.c||''}${L.hl?' hl':''}${L.dim?' dim':''}" points="${L.pts.map(([st,f])=>PX(f)+','+PY(st)).join(' ')}"></polyline>`;});
@@ -958,7 +969,7 @@ function triadShapes(rootPc,f,tun,k){
  return out.sort((x,y)=>x.lowF-y.lowF||x.fr[0]-y.fr[0]);
 }
 function exItem(){const l=exList();return l.find(x=>x.id===S.item[S.kind])||l[0];}
-function fillTuningSelects(){$$('.tuning-sel').forEach(sel=>{sel.innerHTML='';const groups={};TUNINGS.forEach(t=>{(groups[t.g]=groups[t.g]||el('optgroup',{label:t.g})).appendChild(el('option',{value:t.id},t.name));});Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=S.tuning;});}
+function fillTuningSelects(){$$('.tuning-sel').forEach(sel=>{sel.innerHTML='';const groups={};TUNINGS.forEach(t=>{(groups[t.g]=groups[t.g]||el('optgroup',{label:t.g})).appendChild(el('option',{value:t.id},trText(t.name)));});Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=S.tuning;});}
 function buildTriadsFromScale(rootName,f){
  if(f.length!==7)return null;
  const pcs=f.map(l=>(pcOf(rootName)+IV[l])%12);
@@ -980,7 +991,7 @@ function renderExplorer(){
  $('#ex-tuning').value=S.tuning;
  const notes=it.f.map(l=>S.kind!=='chords'&&it.id==='chrom'?pretty(names[(rootPc+IV[l])%12]):pretty(spellIv(S.root,l)));
  $('#ex-title').textContent=S.kind==='triads'?`${pretty(S.root+it.sym)} · ${it.name} triads`:S.kind==='chords'?`${pretty(S.root+it.sym)} · ${it.name}`:`${pretty(S.root)} ${it.name}`;
- $('#ex-desc').textContent=(it.p?it.p+'. ':'')+it.d;
+ $('#ex-desc').textContent=(it.p?it.p+'. ':'')+it.d.replace(/\{([A-G][#b]?)\}/g,(m,n)=>pretty(n));
  const fbox=$('#ex-formula');fbox.innerHTML='';
  it.f.forEach((l,i)=>{const c=ivCat(l);fbox.appendChild(el('div',{class:'chip '+c},`<b>${notes[i]}</b><small>${pretty(l==='1'?'R':l)}</small><em>${IVNAME[l]}</em><em>${IV[l]===0?'start':'+'+IV[l]+' fret'+(IV[l]>1?'s':'')}</em>`));});
  const ex=it.f.find(l=>l.startsWith('b'))||it.f[1];
@@ -1078,7 +1089,7 @@ function renderExplorer(){
    extra.appendChild(g);});
  } else if(S.kind==='chords'){
   const vs=voicings(rootPc,it.f,it.opt,tun);
-  extra.appendChild(el('h3',{},`Playable shapes in ${TU[S.tuning].name}`));
+  extra.appendChild(el('h3',{},`Playable shapes in ${trText(TU[S.tuning].name)}`));
   if(!vs.length){extra.appendChild(el('p',{class:'empty'},'No comfortable four-finger shape found in this tuning. Use the fretboard above to build your own.'));}
   else{const g=el('div',{class:'grid-v'});const cname=pretty(S.root+it.sym);vs.forEach(v=>{const fr=v.frets.map(x=>x<0?'x':x).join(' ');const fretted=v.frets.filter(x=>x>0);const mn=fretted.length?Math.min(...fretted):0,mx=fretted.length?Math.max(...fretted):0;
     const bassMidi=v.frets.map((f,s)=>f>=0?tun[s]+f:null).find(x=>x!==null);const pos=mx<=4&&v.frets.includes(0)?'Open position':(fretted.filter(x=>x===mn).length>=2?`Barre, fret ${mn}`:`Fret ${mn}`);
@@ -1130,9 +1141,9 @@ function renderTuner(){
  tun.forEach((m,i)=>{const nm=midiName(m);const b=el('button',{class:'sbtn','data-i':i},`<i>String ${tun.length-i}</i><b>${pretty(nm.replace(/-?\d+$/,''))}</b><small>${pretty(nm)} · ${freq(m).toFixed(2)} Hz</small>`);
   b.onclick=()=>playString(i,b);box.appendChild(b);});
  const t=TU[S.tuning];
- const notes={std:'The most common tuning. Strings from thick to thin: E A D G B E.',eb:'Every string a half step lower. Used by Hendrix, Stevie Ray Vaughan and many grunge bands.',dstd:'Everything a whole step down. Heavier sound, slacker strings for bends.',dropd:'Only the low E goes down to D. Power chords become one-finger barres.',dropc:'Drop D shifted a whole step down. A metalcore and hard-rock favourite.',dadgad:'Celtic and folk staple. Strumming open gives a suspended D sound.',openg:'Strumming open gives a G major chord. Slide and Keith Richards-style riffs.',opend:'Strumming open gives D major. Great for slide guitar.',opene:'Strumming open gives E major. Classic slide-blues tuning.',nst:'Robert Fripp\'s tuning in fifths, with a minor third on top.'};
- $('#tu-notes').textContent=(notes[t.id]||'Strumming the open strings gives you the sound this tuning is named for. Retune from thickest to thinnest string.')+' Tighten the string to raise the pitch, loosen it to lower it.';
- $('#hdr-a4').textContent=`A4 = ${S.a4} Hz`;
+ const notes={std:'The most common tuning. Strings from thick to thin: E A D G B E.',eb:'Every string a half step lower. Used by Hendrix, Stevie Ray Vaughan and many grunge bands.',dstd:'Everything a whole step down. Heavier sound, slacker strings for bends.',dropd:'Only the low E goes down to D. Power chords become one-finger barres.',dropc:'Drop D shifted a whole step down. Popular in metalcore and hard rock.',dadgad:'Celtic and folk staple. Strumming open gives a suspended D sound.',openg:'Strumming open gives a G major chord. Slide and Keith Richards-style riffs.',opend:'Strumming open gives D major. Great for slide guitar.',opene:'Strumming open gives E major. Classic slide-blues tuning.',nst:'Robert Fripp\'s tuning in fifths, with a minor third on top.'};
+ $('#tu-notes').textContent=trText(notes[t.id]||'Strumming the open strings gives you the sound this tuning is named for. Retune from thickest to thinnest string.')+' Tighten the string to raise the pitch, loosen it to lower it.';
+ $('#hdr-a4').textContent=`${pretty('A')}4 = ${S.a4} Hz`;
 }
 function playString(i,btn){const tun=tuning(),f=freq(tun[i]);
  if($('#tu-hold').checked){if(held){held.stop();heldBtn&&heldBtn.classList.remove('on');const same=heldBtn===btn;held=null;heldBtn=null;if(same)return;}held=tone(f,0);heldBtn=btn;btn.classList.add('on');}
@@ -1217,7 +1228,7 @@ function renderCircle(){
   const oSel=!S.circle.minor&&i===sel,iSel=S.circle.minor&&i===sel;
   s+=`<path class="seg-o${oSel?' sel':fam.has(i)?' fam':''}" data-i="${i}" data-min="0" d="${arcPath(cx,cy,170,250,a1,a2)}"></path>`;
   s+=`<path class="seg-i${iSel?' sel':fam.has(i)?' fam':''}" data-i="${i}" data-min="1" d="${arcPath(cx,cy,108,170,a1,a2)}"></path>`;
-  const lo=i===6?'F♯/G♭':pretty(C_MAJ[i]),li=(i===6?'d♯/e♭':pretty(C_MIN[i]).toLowerCase())+'m';
+  const lo=i===6?pretty('F#/Gb'):pretty(C_MAJ[i]),li=isIt()?(i===6?pretty('D#/Eb'):pretty(C_MIN[i]))+'m':(i===6?'d♯/e♭':pretty(C_MIN[i]).toLowerCase())+'m';
   s+=`<text class="ct${oSel?' on':''}" x="${cx+212*Math.sin(am)}" y="${cy-212*Math.cos(am)+6}" text-anchor="middle">${lo}</text>`;
   s+=`<text class="ct min${iSel?' on':''}" x="${cx+139*Math.sin(am)}" y="${cy-139*Math.cos(am)+5}" text-anchor="middle">${li.replace('mm','m')}</text>`;
   const sig=i===0?'0':i<=6?i+'♯':(12-i)+'♭';
@@ -1260,7 +1271,7 @@ function normSuffix(s){
  if(s==='sus')s='sus4';if(s==='maj')s='';if(s==='M')s='';
  return s;
 }
-function parseChord(tok){
+function parseChordEn(tok){
  const m=tok.trim().match(/^([A-Ga-g])([#b♯♭]?)([^/]*)(?:\/([A-Ga-g][#b♯♭]?))?$/);if(!m)return null;
  const root=m[1].toUpperCase()+(m[2]==='♯'?'#':m[2]==='♭'?'b':m[2]);
  const suf=normSuffix(m[3]);let type=SUFMAP[suf],guess=false;
@@ -1268,6 +1279,17 @@ function parseChord(tok){
  const bass=m[4]?m[4][0].toUpperCase()+m[4].slice(1).replace('♯','#').replace('♭','b'):null;
  return{raw:tok,root,pc:pcOf(root),suf:m[3],type,bass,bpc:bass?pcOf(bass):null,guess};
 }
+const IT_RE=/^(Do|Re|Mi|Fa|Sol|La|Si)(?=[^a-z]|b|m|maj|min|dim|aug|sus|add|$)/i;
+const IT_L={do:'C',re:'D',mi:'E',fa:'F',sol:'G',la:'A',si:'B'};
+function itToEn(tok){let t=String(tok).trim();const m=t.match(/^(Do|Re|Mi|Fa|Sol|La|Si)/i);if(!m)return null;t=IT_L[m[1].toLowerCase()]+t.slice(m[1].length);
+ t=t.replace(/\/(Do|Re|Mi|Fa|Sol|La|Si)/i,(x,n)=>'/'+IT_L[n.toLowerCase()]);t=t.replace(/^([A-G][#b♯♭]?)7\+/,'$1maj7');return t;}
+function parseChord(tok){
+ const en=parseChordEn(tok);let it=null;const conv=IT_RE.test(String(tok).trim())?itToEn(tok):null;
+ if(conv){const r=parseChordEn(conv);if(r)it={...r,raw:tok};}
+ if(it&&(!en||en.guess||/^o$/i.test(en.suf)||isIt()&&!it.guess))return it;
+ return en||it;
+}
+const chordLabel=x=>{const c=typeof x==='string'?parseChord(x):x;return c?pretty(c.root+c.suf+(c.bass?'/'+c.bass:'')):pretty(x);};
 const tokens=str=>str.split(/[\s,|]+/).map(x=>x.trim()).filter(Boolean);
 const chordPcs=c=>{const a=CH[c.type].f.map(l=>(c.pc+IV[l])%12);if(c.bpc!==null)a.push(c.bpc);return[...new Set(a)];};
 const isMinorish=c=>{const f=CH[c.type].f;return f.includes('b3')&&!f.includes('3');};
@@ -1339,7 +1361,7 @@ function loadTemplate(tp,key){
  let t=key.t,mode=key.mode;const want=tp.m?'minor':'major';
  if(want!==mode){t=want==='minor'?(t+9)%12:(t+3)%12;mode=want;}
  const k={t,mode,name:keyName(t,mode)};
- S.song=tp.c.map(([rel,ty])=>spellIv(k.name,REL_LBL[rel])+CH[ty].sym).join(' ');S.songIsSample=false;S.forced=null;save();renderSong();
+ S.song=tp.c.map(([rel,ty])=>nameIn(spellIv(k.name,REL_LBL[rel])+CH[ty].sym)).join(' ');S.songIsSample=false;S.forced=null;save();renderSong();
 }
 function curChords(){return tokens(S.song).map(parseChord);}
 let playTimer=null,playIdx=0;
@@ -1348,7 +1370,7 @@ function renderSong(){
  $('#sg-bpm').value=S.bpm;
  const parsed=curChords();const valid=parsed.filter(Boolean);
  const bad=tokens(S.song).filter((t,i)=>!parsed[i]);
- $('#sg-note').innerHTML=bad.length?`Couldn't read: <b>${bad.map(b=>b.replace(/</g,'&lt;')).join(', ')}</b>. Chords start with a letter A–G.`:(S.songIsSample?'<span class="sample-tag">Example progression</span> · type your own chords above.':'Separate chords with spaces. Slash chords (G/B), sevenths and extensions (Cmaj7, Dm9, E7♯9) all work.');
+ $('#sg-note').innerHTML=bad.length?`Couldn't read: <b>${bad.map(b=>b.replace(/</g,'&lt;')).join(', ')}</b>. Chords start with a note name, like ${pretty('C')} or ${pretty('Am')}.`:(S.songIsSample?'<span class="sample-tag">Example progression</span> · type your own chords above.':`Separate chords with spaces. Slash chords (${pretty('G/B')}), sevenths and extensions (${pretty('Cmaj7')}, ${pretty('Dm9')}, ${pretty('E7#9')}) all work.${isIt()?' You can type them in Italian or English.':''}`);$('#sg-input').placeholder='e.g. '+['C','G','Am','F'].map(nameIn).join(' ');
  const prog=$('#sg-prog');prog.innerHTML='';
  renderSongShapes(valid);
  const kbox=$('#sg-key'),abox=$('#sg-analysis'),nbox=$('#sg-next'),pbox=$('#sg-palette'),scb=$('#sg-scales'),tbox=$('#sg-templates');
@@ -1362,7 +1384,7 @@ function renderSong(){
   key=ranks[0];if(S.forced){const f=ranks.find(r=>r.t===S.forced.t&&r.mode===S.forced.mode);if(f)key=f;}
   // chips
   valid.forEach((c,i)=>{const a=classify(c,key);const chip=el('div',{class:'pc '+a.cls,tabindex:'0','data-i':i,'data-pop':c.raw,'data-popctx':'song','data-popnote':pretty(a.rn)+' · '+a.note});
-   chip.innerHTML=`<b>${pretty(c.raw)}</b><span>${pretty(a.rn)}</span>`;
+   chip.innerHTML=`<b>${chordLabel(c)}</b><span>${pretty(a.rn)}</span>`;
    const x=el('button',{class:'x','aria-label':'Remove '+c.raw},'×');x.onclick=ev=>{ev.stopPropagation();const tk=tokens(S.song);let n=-1;const idx=tk.findIndex(t=>{if(parseChord(t))n++;return n===i&&parseChord(t);});tk.splice(idx,1);S.song=tk.join(' ');S.songIsSample=false;S.forced=null;save();renderSong();};
    chip.appendChild(x);chip.onclick=()=>strum(songMidis(c));chip.onkeydown=e=>{if(e.key==='Enter')chip.click();};prog.appendChild(chip);});
   // key card
@@ -1378,7 +1400,7 @@ function renderSong(){
   abox.innerHTML='<h3>Chord by chord</h3>';
   const tw=el('div',{class:'tbl-wrap'});const tb=el('table',{class:'tbl'});tb.innerHTML='<thead><tr><th>Chord</th><th>Numeral</th><th>Notes</th><th>Role</th></tr></thead>';
   const body=el('tbody');valid.forEach(c=>{const a=classify(c,key);const notes=CH[c.type].f.map(l=>pretty(spellIv(respell({...c,suf:'',bass:null},key),l))).join(' ');
-   body.appendChild(el('tr',{},`<td><b>${pretty(c.raw)}</b>${c.guess?' <span class="mono" title="Unknown suffix, read as '+CH[c.type].name+'">?</span>':''}</td><td class="mono">${pretty(a.rn)}</td><td class="mono">${notes}</td><td>${a.note}</td>`));});
+   body.appendChild(el('tr',{},`<td><b>${chordLabel(c)}</b>${c.guess?' <span class="mono" title="Unknown suffix, read as '+CH[c.type].name+'">?</span>':''}</td><td class="mono">${pretty(a.rn)}</td><td class="mono">${notes}</td><td>${a.note}</td>`));});
   tb.appendChild(body);tw.appendChild(tb);abox.appendChild(tw);
   // next
   nbox.innerHTML='<h3>What could come next</h3>';
@@ -1401,7 +1423,7 @@ function renderSong(){
  (key.mode==='major'?[...TPL_MAJ,...TPL_MIN.slice(0,2)]:[...TPL_MIN,...TPL_MAJ.slice(0,2)]).forEach(tp=>tl.appendChild(el('button',{class:'tpl',onclick:()=>loadTemplate(tp,key)},`<span><b>${tp.name}</b></span><small>${tp.f}</small>`)));tbox.appendChild(tl);
  tbox.appendChild(el('p',{class:'empty'},'Minor progressions use the relative minor of your key, and the other way round. Loading one replaces your current chords.'));
 }
-function addChord(name){S.song=(S.song.trim()+' '+name).trim();S.songIsSample=false;save();renderSong();strum(bestVoicingMidis(parseChord(name).pc,parseChord(name).type,songTuning()));}
+function addChord(name){S.song=(S.song.trim()+' '+nameIn(name)).trim();S.songIsSample=false;save();renderSong();strum(bestVoicingMidis(parseChord(name).pc,parseChord(name).type,songTuning()));}
 function songTuning(){const t=tuning();return t.length>=6&&t.length<=7?t:TU.std.n;}
 const songShapeIdx=new Map(),songVCache=new Map();
 function songVoicings(c){const tun=songTuning();const key=c.pc+'|'+c.type+'|'+c.bpc+'|'+tun.join(',');
@@ -1411,17 +1433,17 @@ function songMidis(c){const tun=songTuning(),vs=songVoicings(c);if(!vs.length)re
  const v=vs[(songShapeIdx.get(c.raw)||0)%vs.length];return v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}
 function renderSongShapes(valid){
  const box=$('#sg-shapes');box.innerHTML='';const tun=songTuning();
- box.appendChild(el('h3',{},`How to play these chords · ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'Standard tuning'}`));
+ box.appendChild(el('h3',{},`How to play these chords · ${TU[S.tuning]&&tun===tuning()?trText(TU[S.tuning].name):'Standard tuning'}`));
  if(!valid.length){box.appendChild(el('p',{class:'empty'},'Add chords and their shapes appear here.'));return;}
  const seen=new Set(),g=el('div',{class:'grid-v'});
  valid.forEach(c=>{if(seen.has(c.raw))return;seen.add(c.raw);
   const vs=songVoicings(c);const card=el('div',{class:'voicing',style:'cursor:default'});
-  if(!vs.length){card.innerHTML=`<span class="vname">${pretty(c.raw)}</span><span class="vpos">No easy shape found</span>`;g.appendChild(card);return;}
+  if(!vs.length){card.innerHTML=`<span class="vname">${chordLabel(c)}</span><span class="vpos">No easy shape found</span>`;g.appendChild(card);return;}
   const idx=(songShapeIdx.get(c.raw)||0)%vs.length,v=vs[idx];
   const fretted=v.frets.filter(x=>x>0),mn=fretted.length?Math.min(...fretted):0,mx=fretted.length?Math.max(...fretted):0;
   const pos=mx<=4&&v.frets.includes(0)?'Open position':(fretted.filter(x=>x===mn).length>=2?`Barre, fret ${mn}`:`Fret ${mn}`);
   const ms=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);
-  card.innerHTML=`<span class="vname">${pretty(c.raw)}</span><span class="vpos">${idx===0?'Easiest · ':''}${pos}</span>`;
+  card.innerHTML=`<span class="vname">${chordLabel(c)}</span><span class="vpos">${idx===0?'Easiest · ':''}${pos}</span>`;
   const play=el('button',{class:'shape-play',title:'Play '+c.raw,'aria-label':'Play '+c.raw},diagramSVG(v,tun,c.pc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small>`);
   play.onclick=()=>strum(ms);card.appendChild(play);
   const nav=el('div',{class:'shape-nav'});
@@ -1505,7 +1527,7 @@ $('#sg-clear').onclick=()=>{S.song='';S.songIsSample=false;S.forced=null;save();
 function transpose(n){const ch=curChords().filter(Boolean);if(!ch.length)return;
  const moved=ch.map(c=>({...c,pc:(c.pc+n+12)%12,bpc:c.bpc===null?null:(c.bpc+n+12)%12}));
  let key=detectKey(moved)[0];if(S.forced){const t=(S.forced.t+n+12)%12;key={t,mode:S.forced.mode,name:keyName(t,S.forced.mode)};S.forced={t,mode:S.forced.mode};}
- S.song=moved.map(c=>respell(c,key)).join(' ');S.songIsSample=false;save();$('#sg-input').value=S.song;renderSong();}
+ S.song=moved.map(c=>nameIn(respell(c,key))).join(' ');S.songIsSample=false;save();$('#sg-input').value=S.song;renderSong();}
 $('#sg-up').onclick=()=>transpose(1);$('#sg-down').onclick=()=>transpose(-1);
 $('#sg-bpm').onchange=e=>{let v=+e.target.value;if(!(v>=40&&v<=220))v=90;S.bpm=v;save();};
 function stopPlay(){clearTimeout(playTimer);playTimer=null;$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';}
@@ -1570,7 +1592,7 @@ function finderSVG(tun,frets,ghostPcs){
  for(let i=0;i<n;i++){const st=n-1-i,y=top+i*sg;const w=1+Math.max(0,(n-1-i))*0.35*(6/n);
   s+=`<line class="str" x1="${nutX-30}" x2="${nutX+F*fw}" y1="${y}" y2="${y}" stroke-width="${w.toFixed(2)}" ${frets[st]===null?'stroke-dasharray="4 4" opacity=".55"':''}></line>`;
   const muted=frets[st]===null;
-  s+=`<g class="mtog${muted?' muted':''}" data-tog="${st}"><rect x="2" y="${y-11}" width="38" height="22" rx="5"></rect><text x="21" y="${y+4}" text-anchor="middle">${muted?'×':frets[st]===0?'○':'●'} ${pretty(AUTO[tun[st]%12])}</text></g>`;
+  s+=`<g class="mtog${muted?' muted':''}" data-tog="${st}"><rect x="2" y="${y-11}" width="${isIt()?44:38}" height="22" rx="5"></rect><text x="${isIt()?24:21}" y="${y+4}" text-anchor="middle">${muted?'×':frets[st]===0?'○':'●'} ${pretty(AUTO[tun[st]%12])}</text></g>`;
   for(let f=0;f<=F;f++){const x0=f===0?nutX-34:nutX+(f-1)*fw,wd=f===0?32:fw;s+=`<rect class="cell" data-s="${st}" data-f="${f}" x="${x0}" y="${y-sg/2}" width="${wd}" height="${sg}"></rect>`;}
   if(ghostPcs)for(let f=0;f<=F;f++){const pc=(tun[st]+f)%12;if(ghostPcs.has(pc)&&frets[st]!==f){const x=f===0?nutX-18:nutX+(f-.5)*fw;s+=`<circle class="ghost" cx="${x}" cy="${y}" r="10"></circle>`;}}
   const f=frets[st];if(f!==null){const x=f===0?nutX-18:nutX+(f-.5)*fw;const isB=false;s+=`<circle class="dot" cx="${x}" cy="${y}" r="11.5" style="pointer-events:none"></circle><text class="dt" x="${x}" y="${y+3.5}" text-anchor="middle">${pretty(AUTO[(tun[st]+f)%12])}</text>`;}
@@ -1665,7 +1687,7 @@ let TABDOC=null;
 const isTabLine=l=>{const t=l.replace(/^\s*[A-Ga-g][#b]?\s*(?=\|)/,'');const d=(t.match(/-/g)||[]).length;return d>=6&&/^[\s|0-9\-\/\\bhprxXN~()^.*=<>s]+$/.test(t);};
 function parseTuningNames(names){const pcs=names.map(n=>pcOf(n));let m=36+pcs[0];if(m>45)m-=12;if(names.length===4)m-=12;const out=[m];for(let i=1;i<pcs.length;i++){let x=out[i-1]+1;while(x%12!==pcs[i])x++;out.push(x);}return out;}
 function chordLineTokens(line){if(/tuning|capo/i.test(line))return null;const toks=[];const re=/[^\s()]+/g;let m;while((m=re.exec(line))){toks.push({t:m[0],i:m.index});}
- if(!toks.length)return null;let ok=0;toks.forEach(k=>{const c=k.t;k.c=c;const pc=/^[A-G][#b]?[A-Za-z0-9#+°ø\/]*$/.test(c)?parseChord(c):null;k.p=pc&&!pc.guess?pc:null;if(k.p)ok++;});
+ if(!toks.length)return null;let ok=0;toks.forEach(k=>{const c=k.t;k.c=c;const pc=/^([A-G][#b]?|Do|Re|Mi|Fa|Sol|La|Si)[A-Za-z0-9#+°ø\/\-]*$/.test(c)?parseChord(c):null;k.p=pc&&!pc.guess?pc:null;if(k.p)ok++;});
  return ok/toks.length>=.7?toks:null;}
 function parseTab(text){
  const lines=text.replace(/\r/g,'').split('\n');const items=[];let tuning=null,title='';const defs={};
@@ -1733,14 +1755,14 @@ function splitMeasures(te,chords){
 }
 const bendLabel=d=>d===1?'½':d===2?'full':d===3?'1½':d===4?'2':'+'+d;
 function measureSVG(ms,tun,num,showLab){
- const cw=9,sg=18,lx=showLab?18:4,top=ms.chords.length?34:24;const W=lx+(ms.b-ms.a+1)*cw+14,H=top+sg*(ms.te.n-1)+12;
+ const cw=9,sg=18,lx=showLab?(isIt()?28:18):4,top=ms.chords.length?34:24;const W=lx+(ms.b-ms.a+1)*cw+14,H=top+sg*(ms.te.n-1)+12;
  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
  s+=`<rect class="mbg" x="0" y="0" width="${W}" height="${H}" rx="4"></rect>`;
  for(let r=0;r<ms.te.n;r++){const y=top+r*sg;s+=`<line class="tstr" x1="${lx-2}" x2="${W}" y1="${y}" y2="${y}"></line>`;if(showLab)s+=`<text class="tlab" x="2" y="${y+3.5}">${pretty(AUTO[tun[ms.te.n-1-r]%12])}</text>`;}
  s+=`<line class="tbar" x1="${W-.75}" x2="${W-.75}" y1="${top}" y2="${top+sg*(ms.te.n-1)}"></line>`;
  if(showLab)s+=`<line class="tbar" x1="${lx-2}" x2="${lx-2}" y1="${top}" y2="${top+sg*(ms.te.n-1)}"></line>`;
  s+=`<text class="mnum" x="${lx}" y="${ms.chords.length?11:9}">${num}</text>`;
- ms.chords.forEach(k=>{s+=`<text class="tch" data-pop="${k.c.replace(/"/g,'')}" data-popctx="tab" x="${lx+(k.col-ms.a)*cw}" y="${ms.chords.length?24:20}">${pretty(k.c)}</text>`;});
+ ms.chords.forEach(k=>{s+=`<text class="tch" data-pop="${k.c.replace(/"/g,'')}" data-popctx="tab" x="${lx+(k.col-ms.a)*cw}" y="${ms.chords.length?24:20}">${chordLabel(k.c)}</text>`;});
  const box=e=>{const x=lx+(e.col-ms.a)*cw-2,w=e.w*7+5;return{x1:x,x2:x+w,cx:x+w/2,y:top+e.r*sg};};
  let deco='';
  ms.ev.forEach(e=>{const b=box(e);
@@ -1841,9 +1863,9 @@ function renderTabs(){
  TABDOC={...doc,tun,secs};const tsUsed=S.tbTS==='auto'?(doc.ts&&TSIGS.includes(doc.ts)?doc.ts:doc.ts||'4/4'):S.tbTS;TABDOC.tsName=tsUsed;TABDOC.tsi=tsInfo(tsUsed);
  {const sel=$('#tb-ts');sel.innerHTML='';sel.appendChild(el('option',{value:'auto'},`Auto · ${doc.ts||'4/4'}${doc.ts?' (from the tab)':''}`));TSIGS.forEach(x=>sel.appendChild(el('option',{value:x},x)));sel.value=S.tbTS;}
  $$('#tb-cpb button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.c===S.tbCPB)));
- const autoName=(TUNINGS.find(t=>t.n.join()===autoTun.join())||{}).name||autoTun.map(m=>pretty(midiName(m))).join(' ');
+ const autoName=trText((TUNINGS.find(t=>t.n.join()===autoTun.join())||{}).name||'')||autoTun.map(m=>pretty(midiName(m))).join(' ');
  const sel=$('#tb-tuning');sel.innerHTML='';sel.appendChild(el('option',{value:'auto'},`Auto · ${autoName}`));
- const groups={};TUNINGS.forEach(t=>{(groups[t.g]=groups[t.g]||el('optgroup',{label:t.g})).appendChild(el('option',{value:t.id},t.name));});Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=S.tbTuning;
+ const groups={};TUNINGS.forEach(t=>{(groups[t.g]=groups[t.g]||el('optgroup',{label:t.g})).appendChild(el('option',{value:t.id},trText(t.name)));});Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=S.tbTuning;
  $('#tb-src').innerHTML=tabText?`Showing <b>${(tabSrc||'your tab').replace(/</g,'&lt;')}</b>`:'<span class="sample-tag">Example tab</span> · open your own .txt to replace it';
  $('#tb-bpm').value=S.tbBpm;$('#tb-bpm-r').value=S.tbBpm;$('#tb-lyr').checked=!!S.tbLyr;
  $$('#tb-rhythm button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.r===S.tbRhythm)));
@@ -1882,10 +1904,10 @@ function renderTabs(){
    const sh=el('div',{class:'tb-sheet'});
    sec.sheet.forEach(line=>{const bars=el('div',{class:'tb-bars'});
     line.toks.filter(k=>k.p).forEach((k,ci)=>{addUsed(k.c);nCh++;const id='tbc'+(eid++);const b0=sec.tabs.length?null:beat;
-     const btn=el('button',{class:'tb-cbar',id,'data-pop':k.c,'data-popctx':'tab'},esc(pretty(k.c)));btn.onclick=()=>{if(b0!=null)tbPlayFrom(b0);else strum(tabChordMidis(k.c));};bars.appendChild(btn);
+     const btn=el('button',{class:'tb-cbar',id,'data-pop':k.c,'data-popctx':'tab'},esc(chordLabel(k.c)));btn.onclick=()=>{if(b0!=null)tbPlayFrom(b0);else strum(tabChordMidis(k.c));};bars.appendChild(btn);
      if(!sec.tabs.length){const D=TABDOC.tsi.bb*S.tbCPB;tl.ev.push({beat,dur:D,chord:k.c,ids:[id],si,ci:nCh-1});beat+=D;}});
     sh.appendChild(bars);
-    if(S.tbLyr&&line.lyr!=null){let h='',last=0;line.toks.forEach(k=>{h+=esc(line.raw.slice(last,k.i));h+=k.p?`<button class="cc" data-ch="${esc(k.c)}" data-pop="${esc(k.c)}" data-popctx="tab">${esc(pretty(k.t))}</button>`:esc(k.t);last=k.i+k.t.length;});
+    if(S.tbLyr&&line.lyr!=null){let h='',last=0;line.toks.forEach(k=>{h+=esc(line.raw.slice(last,k.i));h+=k.p?`<button class="cc" data-ch="${esc(k.c)}" data-pop="${esc(k.c)}" data-popctx="tab">${esc(chordLabel(k.p||k.t))}</button>`:esc(k.t);last=k.i+k.t.length;});
      sh.appendChild(el('pre',{class:'tb-pre'},h));sh.appendChild(el('pre',{class:'tb-pre lyr'},esc(line.lyr)));}});
    card.appendChild(sh);}
   sec.notes.forEach(t=>card.appendChild(el('p',{class:'tb-note'},esc(t.trim()))));
@@ -1903,7 +1925,7 @@ function renderTabs(){
  if(S.tbScope!=='all'&&!(secs[S.tbScope]&&secs[S.tbScope].b1>secs[S.tbScope].b0))S.tbScope='all';sc.value=String(S.tbScope);
  // info
  const info=$('#tb-info');info.innerHTML='';
- const curName=(TUNINGS.find(t=>t.n.join()===tun.join())||{}).name||tun.map(m=>pretty(midiName(m))).join(' ');
+ const curName=trText((TUNINGS.find(t=>t.n.join()===tun.join())||{}).name||'')||tun.map(m=>pretty(midiName(m))).join(' ');
  const totalS=Math.round(tl.total*60/S.tbBpm);
  info.appendChild(el('div',{},`<h2>${esc(doc.title||(tabText?tabSrc:'Example song'))}</h2><p class="empty">Tuning: <b>${curName}</b>${tunNote} · Time: <b>${TABDOC.tsName}</b> · ${secs.length} sections · ${barNo} bars of tab · about ${Math.floor(totalS/60)}:${String(totalS%60).padStart(2,'0')} at ${S.tbBpm} BPM</p>`));
  {const T=TABDOC.techs,L=[['slide','╱','Slide: keep the finger pressed and slide along the string, fret by fret, to the next note (pick only the first)'],['sin','╱','Slide in from below or above'],['h','H','Hammer-on: second note without picking'],['p','P','Pull-off: second note without picking'],['bend','↑','Bend: ½ = one fret, full = two frets'],['rel','r','Release the bend back down'],['vib','∿','Vibrato: shake the note'],['dead','×','Dead note: muted, percussive'],['trem','≡','Tremolo picking: fast repeated picks']].filter(x=>T[x[0]]);
@@ -1912,7 +1934,7 @@ function renderTabs(){
   used.forEach(name=>{const c=parseChord(name);if(!c)return;const defs=(doc.defs[name]||[]).map(x=>shapeFromStr(x,tun.length)).filter(Boolean);
    let v=defs.length?{frets:defs[0]}:null;const src=defs.length?'shape from the tab':'suggested shape';
    if(!v){const vs=voicings(c.pc,CH[c.type].f,CH[c.type].opt,tun,c.bpc,'ease');if(vs.length)v=vs[0];}
-   const b=el('button',{class:'voicing',title:'Play '+name},`<span class="vname">${pretty(name)}</span><span class="vpos">${src}</span>`+(v?diagramSVG(v,tun,c.pc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small>`:'<span class="vpos">no shape found</span>'));
+   const b=el('button',{class:'voicing',title:'Play '+name},`<span class="vname">${chordLabel(name)}</span><span class="vpos">${src}</span>`+(v?diagramSVG(v,tun,c.pc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small>`:'<span class="vpos">no shape found</span>'));
    b.onclick=()=>{if(v)strum(v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null));};g.appendChild(b);});
   info.appendChild(g);}
 }
@@ -1941,7 +1963,7 @@ function chordPopShape(name,ctx){const c=parseChord(name);if(!c)return null;
   const vs=voicings(c.pc,CH[c.type].f,CH[c.type].opt,tun,c.bpc,'ease');return vs.length?{c,tun,v:vs[0],src:'easiest shape'}:null;}
  const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return null;const i=(songShapeIdx.get(c.raw)||0)%vs.length;return{c,tun,v:vs[i],src:i===0?'easiest shape':`shape ${i+1} of ${vs.length}`};}
 function showChordPop(t){const name=t.getAttribute('data-pop'),ctx=t.getAttribute('data-popctx');const r=chordPopShape(name,ctx);if(!r){hideChordPop();return;}
- cpopFor=t;const note=t.getAttribute('data-popnote');CPOP.innerHTML=`<b>${pretty(name)}</b>${note?`<span class="cpn">${note.replace(/</g,'&lt;')}</span>`:''}<span>${r.src}</span>`+diagramSVG(r.v,r.tun,r.c.pc)+`<small>${r.v.frets.map(x=>x<0?'x':x).join(' ')}</small>`;CPOP.hidden=false;
+ cpopFor=t;const note=t.getAttribute('data-popnote');CPOP.innerHTML=`<b>${chordLabel(name)}</b>${note?`<span class="cpn">${note.replace(/</g,'&lt;')}</span>`:''}<span>${r.src}</span>`+diagramSVG(r.v,r.tun,r.c.pc)+`<small>${r.v.frets.map(x=>x<0?'x':x).join(' ')}</small>`;CPOP.hidden=false;
  const b=t.getBoundingClientRect(),pw=CPOP.offsetWidth,ph=CPOP.offsetHeight,vw=window.innerWidth;
  let x=b.left+b.width/2-pw/2;x=Math.max(8,Math.min(vw-pw-8,x));let y=b.top-ph-8;if(y<70)y=b.bottom+8;
  CPOP.style.left=x+'px';CPOP.style.top=y+'px';}
@@ -2004,6 +2026,18 @@ function renderKeys(){
  });
 }
 $('#kc-inv').onchange=e=>{S.kc.inv=e.target.checked;save();renderKeys();};
+
+/* ---------- note-name language ---------- */
+if(S.lang!=='it')S.lang='en';
+function songToLang(){if(!S.song)return;S.song=tokens(S.song).map(t=>{const c=parseChord(t);return c&&!c.guess?nameIn(c.root+c.suf+(c.bass?'/'+c.bass:'')):t;}).join(' ');const i=$('#sg-input');if(i)i.value=S.song;}
+function applyLang(){
+ $$('#lang-sw button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===S.lang)));
+ document.documentElement.lang=S.lang==='it'?'it':'en';
+ $$('[data-n]').forEach(x=>{x.textContent=pretty(x.dataset.n);});
+ $('#hdr-a4').textContent=`${pretty('A')}4 = ${S.a4} Hz`;
+}
+$$('#lang-sw button').forEach(b=>b.onclick=()=>{if(S.lang===b.dataset.lang)return;S.lang=b.dataset.lang;songToLang();save();fillTuningSelects();applyLang();renderTuner();show(S.view);});
+applyLang();
 
 /* ---------- routing ---------- (go is declared early so other tools can call it) */
 const VIEWS=['explore','finder','keys','tabs','tuner','circle','song'];
