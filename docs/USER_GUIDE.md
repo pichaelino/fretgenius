@@ -82,6 +82,13 @@ The page has four parts; the buttons at the top jump to each one.
 
 ### 1 · Write your song
 
+**My songs** (top of the section): type a **title** and press **Save** (or Ctrl/⌘ + S). After that, Save updates the same song; **Save as new** keeps the old one and makes a copy. **● unsaved** means you changed something since the last save. **＋ New** starts an empty song. **My songs ▾** lists everything you saved: tap one to open it (chords, tempo, time signature, playing style and chosen key come back), **Delete** removes it (with Undo), **Export all / Import JSON** move songs to another browser or into the database.
+
+Where songs are kept is shown under the title box:
+
+- *Saved in the database on your computer* (green dot): you opened the app through the Fretwise server; songs are in a SQLite file. **Back up / Restore settings** also store all your app settings there.
+- *Saved in this browser only*: the app was opened as a file or from the website; songs live in this browser's storage.
+
 - **Type** chords separated by spaces (`Am F C G`), or **tap / drag** them from the key wheel below. Dragging drops the chord exactly where the blue line shows (on a phone, press and hold first).
 - **Chips**: drag ⠿ to reorder, × to delete (with Undo). Under each chip:
   - ⧉ repeat it in a new bar,

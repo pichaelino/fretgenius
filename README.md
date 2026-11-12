@@ -12,11 +12,20 @@ A guitar practice toolkit that runs in the browser. Everything lives in one file
 | **Licks** (on the Fretboard page) | 15 original blues, rock and country licks, drawn as tab and on the neck in your key. Slow them down, loop them, or trade them with the band: it plays the lick, you answer. |
 | **Chord Finder** | Tap notes on the neck (open or muted strings too) and get the chord name, plus what to add to complete it. |
 | **Chord Shapes** | Every shape of a chord up to fret 15, grouped by position, with inversions, finger numbers, a CAGED filter and a triads view. |
-| **Song Builder** | Type or tap chords. You get the key, Roman numerals, a key wheel of chords that fit, a play-along neck, nine strumming and fingerstyle patterns, time signatures, ties, and a chord builder on the neck. |
+| **Song Builder** | Type or tap chords. You get the key, Roman numerals, a key wheel of chords that fit, a play-along neck, nine strumming and fingerstyle patterns, time signatures, ties, and a chord builder on the neck. **My songs** saves and reopens songs. |
 | **Tab Player** (beta) | Open a plain-text tab and play it back. |
 | **Tuner** | 26 tunings and a microphone tuner. Hidden from the menu for now; open `#tuner`. |
 
 Note names switch between English (C D E) and Italian (Do Re Mi). Dark and light themes, seven fretboard woods, left-handed and tab-style neck views.
+
+## Save songs in a database (local Rust server)
+
+```sh
+cd server
+cargo run --release
+```
+
+Then open http://127.0.0.1:8080. Songs go into a SQLite file on your computer instead of the browser. See [server/README.md](server/README.md) for options and the API. Without the server, the app saves songs in the browser.
 
 ## Docs
 
@@ -26,7 +35,7 @@ Note names switch between English (C D E) and Italian (Do Re Mi). Dark and light
 
 ## Run locally
 
-Open `index.html` in a browser. The microphone tuner needs `https://` or `localhost`.
+Open `index.html` in a browser, or run the server above. The microphone tuner needs `https://` or `localhost` (the server is on localhost, so it works there).
 
 ## Deploy
 

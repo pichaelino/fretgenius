@@ -23,13 +23,17 @@ Everything the user sets is in the object `S`, saved to `localStorage['fretwise'
 
 Song tokens can carry extras: `~` prefix = tied bar, `@x07555` suffix = exact shape. `parseChord` returns `{pc, type, bpc, raw, tied, shape}`.
 
+## Server and song library
+
+`server/` is a Rust crate (Axum + rusqlite) that serves `index.html` and a JSON API for songs and a settings backup; see `server/README.md`. In the page, `libInit()` calls `/api/health`: if it answers, the library (`LIB`, `libSave`, `libOpen`, `libDelete`, `libImport`, `libExport`) talks to `/api/songs`; otherwise it uses `localStorage['fretwise-songs']` with the same record shape. The open song is `S.songId` / `S.songTitle`; "unsaved" compares `songPayload()` with the stored record.
+
 ## Audio timing
 
 All sound is scheduled on the Web Audio clock (`ac().currentTime`). Visual highlights use `setTimeout` to the same time. The jam runs a 30 ms look-ahead loop (`jamTick`) that schedules whole bars 350 ms ahead.
 
 ## Testing
 
-There is no test suite in the repo. Changes were checked with Playwright scripts that load the page at 1400 px and 390 px (phone), fail on any page error, check there is no horizontal overflow, click through features and take screenshots. A minimal check:
+The server has a test suite: `cd server && cargo test`. The page has no test suite in the repo. Changes were checked with Playwright scripts that load the page at 1400 px and 390 px (phone), fail on any page error, check there is no horizontal overflow, click through features and take screenshots. A minimal check:
 
 ```python
 from playwright.sync_api import sync_playwright

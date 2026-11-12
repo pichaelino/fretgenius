@@ -172,6 +172,17 @@ svg.circle{touch-action:manipulation}
 .cpc.home{border-color:var(--accent);background:var(--accent-soft)}
 .cpc.used::after{content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--root)}
 .dd-hint{font-size:12.5px;color:var(--muted);margin:-4px 0 8px;font-weight:500}
+.lib{padding:12px 14px}
+.lib-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#lib-title{flex:1 1 220px;min-width:0;font:700 18px var(--f-body);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+#lib-title:focus{outline:2px solid var(--accent);outline-offset:1px}
+.lib-dirty{font:600 12px var(--f-mono);color:var(--root);white-space:nowrap}
+.lib-status{margin:8px 0 0;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}.lib-status.bad{color:var(--bad,#e66)}
+.lib-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted)}.lib-dot.ok{background:#3fcf8e;box-shadow:0 0 6px #3fcf8e}
+.lib-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow:auto}
+.lib-row{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:4px 6px 4px 4px;background:var(--bg)}.lib-row.on{border-color:var(--accent)}
+.lib-open{flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--ink);cursor:pointer;padding:6px 8px;display:flex;flex-direction:column;gap:2px;border-radius:8px}
+.lib-open:hover{background:var(--accent-soft)}.lib-open b{font-size:15px}.lib-open span{font:600 12.5px var(--f-mono);color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lib-open small{color:var(--muted);font-size:11.5px}
 .zone-k{font:700 12.5px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 2px 10px;display:flex;align-items:center;gap:10px}
 .zone-k::after{content:'';flex:1;height:1px;background:var(--line)}
 .subnav{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px}
@@ -825,6 +836,18 @@ svg .mtog.muted text{fill:var(--bad)}
     <button class="btn ghost sm" data-go="sg-circle">Circle of fifths</button>
   </nav>
   <div class="zone-k">1 · Write your song</div>
+  <div class="panel lib" id="sg-lib">
+    <div class="lib-bar">
+      <input type="text" id="lib-title" maxlength="120" placeholder="Song title" aria-label="Song title">
+      <span class="lib-dirty" id="lib-dirty" hidden>● unsaved</span>
+      <button class="btn" id="lib-save">Save</button>
+      <button class="btn ghost" id="lib-saveas" hidden>Save as new</button>
+      <button class="btn ghost" id="lib-new">＋ New</button>
+      <button class="btn ghost" id="lib-open" aria-expanded="false">My songs <span id="lib-count"></span> ▾</button>
+    </div>
+    <div class="lib-list" id="lib-list" hidden></div>
+    <p class="lib-status" id="lib-status"></p>
+  </div>
   <div class="panel" id="sg-write">
     <div class="prog-input">
       <input type="text" id="sg-input" aria-label="Chord progression" placeholder="e.g. C G Am F" spellcheck="false" autocomplete="off">
@@ -2248,8 +2271,73 @@ function songDup(i,tie){const{tk,vi}=songTok();const j=vi[i];if(j==null)return;t
 function songTie(i,on){const{tk,vi}=songTok();const j=vi[i];if(j==null)return;tk[j]=(on?'~':'')+tk[j].replace(/^~/,'');S.song=tk.join(' ');S.songIsSample=false;save();renderSong();}
 function songRemove(i){const{tk,vi}=songTok();const j=vi[i];if(j==null)return;const prev=S.song,removed=tk[j];tk.splice(j,1);S.song=tk.join(' ');S.songIsSample=false;S.forced=null;save();renderSong();
  const u=$('#sg-undo');u.innerHTML='';u.append(document.createTextNode(`Removed ${chordLabel(removed)}`),el('button',{class:'btn ghost sm',onclick:()=>{S.song=prev;save();u.hidden=true;renderSong();}},'Undo'));u.hidden=false;clearTimeout(undoT);undoT=setTimeout(()=>{u.hidden=true;},7000);}
+/* ---------- song library: SQLite through the Rust server, or this browser ---------- */
+const LIB={mode:'local',songs:[],ready:false};
+const libKey='fretwise-songs';
+function libLocal(){try{return JSON.parse(localStorage.getItem(libKey)||'[]');}catch(e){return[];}}
+function libLocalPut(a){try{localStorage.setItem(libKey,JSON.stringify(a));}catch(e){}}
+async function api(method,url,body){const r=await fetch(url,{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+ if(r.status===204)return null;const j=await r.json().catch(()=>null);if(!r.ok)throw new Error(j&&j.error||('HTTP '+r.status));return j;}
+function songPayload(){return{title:(S.songTitle||'').trim()||'Untitled song',chords:S.song.trim(),bpm:+S.bpm||90,time_sig:S.sgTime||'4/4',style:S.sgStyle||'strum',legato:!!S.sgLegato,key:S.forced||null,notes:''};}
+const songSig=p=>JSON.stringify([p.title,p.chords,p.bpm,p.time_sig,p.style,p.legato,p.key]);
+async function libInit(){if(/^https?:/.test(location.protocol)){try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),1500);const r=await fetch('/api/health',{cache:'no-store',signal:ctl.signal});if(r.ok){const j=await r.json();if(j&&j.ok)LIB.mode='server';}}catch(e){}}
+ await libLoad();LIB.ready=true;renderLib();}
+async function libLoad(){try{LIB.songs=LIB.mode==='server'?await api('GET','/api/songs'):libLocal().sort((a,b)=>b.updated_at.localeCompare(a.updated_at));}catch(e){libMsg('Could not load songs: '+e.message,true);LIB.songs=[];}}
+function libMsg(t,bad){const x=$('#lib-status');if(!x)return;x.innerHTML=t;x.classList.toggle('bad',!!bad);clearTimeout(LIB.mt);if(!bad)LIB.mt=setTimeout(()=>renderLibStatus(),3500);}
+function renderLibStatus(){const x=$('#lib-status');if(!x)return;x.classList.remove('bad');
+ x.innerHTML=LIB.mode==='server'?'<span class="lib-dot ok"></span>Saved in the database on your computer (Fretwise server).':'<span class="lib-dot"></span>Saved in this browser only. Run the Fretwise server to keep songs in a database. '+tipBtn('library');}
+function renderLib(){const t=$('#lib-title');if(!t)return;if(document.activeElement!==t)t.value=S.songTitle||'';
+ const cur=S.songId!=null&&LIB.songs.find(x=>String(x.id)===String(S.songId));
+ const dirty=!!S.song.trim()&&(!cur||songSig(songPayload())!==songSig(cur));
+ $('#lib-dirty').hidden=!dirty||!LIB.ready;$('#lib-save').textContent=cur?'Save':'Save song';$('#lib-saveas').hidden=!cur;
+ $('#lib-count').textContent=LIB.songs.length?`(${LIB.songs.length})`:'';
+ if(!$('#lib-list').hidden)renderLibList();if(!$('#lib-status').classList.contains('bad')&&!LIB.mt)renderLibStatus();}
+function fmtDate(iso){try{const d=new Date(iso);return d.toLocaleDateString(undefined,{day:'numeric',month:'short'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});}catch(e){return iso;}}
+function renderLibList(){const box=$('#lib-list');box.innerHTML='';
+ if(!LIB.songs.length){box.appendChild(el('p',{class:'empty'},'No saved songs yet. Write a progression, give it a title and press Save.'));}
+ LIB.songs.forEach(sg=>{const row=el('div',{class:'lib-row'+(String(sg.id)===String(S.songId)?' on':'')});
+  const ch=sg.chords.split(/\s+/).filter(Boolean);const prev=ch.slice(0,8).map(t=>{const c=parseChord(t);return c?(c.tied?'⌒':'')+chordLabel(c):t;}).join(' ')+(ch.length>8?' …':'');
+  const open=el('button',{class:'lib-open',title:'Open this song'},`<b>${sg.title.replace(/</g,'&lt;')}</b><span>${prev}</span><small>${sg.bpm} BPM · ${sg.time_sig} · ${fmtDate(sg.updated_at)}</small>`);
+  open.onclick=()=>libOpen(sg);
+  const del=el('button',{class:'btn ghost sm lib-del','aria-label':'Delete '+sg.title,title:'Delete'},'Delete');del.onclick=()=>libDelete(sg);
+  row.append(open,del);box.appendChild(row);});
+ const ft=el('div',{class:'row',style:'gap:8px;margin-top:8px;flex-wrap:wrap'});
+ ft.appendChild(el('button',{class:'btn ghost sm',onclick:libExport},'Export all (JSON)'));
+ const imp=el('label',{class:'btn ghost sm',style:'cursor:pointer'},'Import JSON');const fi=el('input',{type:'file',accept:'application/json,.json',hidden:''});fi.onchange=()=>fi.files[0]&&libImport(fi.files[0]);imp.appendChild(fi);ft.appendChild(imp);
+ if(LIB.mode==='server'){ft.appendChild(el('button',{class:'btn ghost sm',onclick:libBackupSettings},'Back up settings'));ft.appendChild(el('button',{class:'btn ghost sm',onclick:libRestoreSettings},'Restore settings'));}
+ box.appendChild(ft);}
+async function libSave(asNew){const p=songPayload();if(!p.chords){libMsg('Add some chords first.',true);return;}
+ if(!S.songTitle){S.songTitle=p.title;}
+ if(asNew&&LIB.songs.some(x=>x.title===p.title)){p.title=(p.title+' (copy)').slice(0,120);}
+ const upd=S.songId!=null&&!asNew&&LIB.songs.some(x=>String(x.id)===String(S.songId));
+ try{let saved;
+  if(LIB.mode==='server')saved=upd?await api('PUT','/api/songs/'+S.songId,p):await api('POST','/api/songs',p);
+  else{const all=libLocal(),now=new Date().toISOString();if(upd){const i=all.findIndex(x=>String(x.id)===String(S.songId));saved={...all[i],...p,updated_at:now};all[i]=saved;}else{saved={id:Date.now(),...p,created_at:now,updated_at:now};all.push(saved);}libLocalPut(all);}
+  S.songId=saved.id;S.songTitle=saved.title;save();await libLoad();renderLib();libMsg(`Saved “${saved.title.replace(/</g,'&lt;')}”.`);
+ }catch(e){libMsg('Could not save: '+e.message,true);}}
+function libOpen(sg){stopPlay&&playTimer&&stopPlay();S.song=sg.chords;S.songTitle=sg.title;S.songId=sg.id;S.bpm=sg.bpm;S.sgTime=sg.time_sig;S.sgStyle=sg.style;S.sgLegato=!!sg.legato;S.forced=sg.key||null;S.songIsSample=false;save();
+ $('#sg-time').value=S.sgTime;$('#sg-style').value=S.sgStyle;$('#sg-legato').checked=S.sgLegato;sgLegatoVis();$('#lib-list').hidden=true;$('#lib-open').setAttribute('aria-expanded','false');renderSong();libMsg(`Opened “${sg.title.replace(/</g,'&lt;')}”.`);}
+async function libDelete(sg){try{if(LIB.mode==='server')await api('DELETE','/api/songs/'+sg.id);else libLocalPut(libLocal().filter(x=>String(x.id)!==String(sg.id)));
+  if(String(S.songId)===String(sg.id)){S.songId=null;save();}await libLoad();renderLib();
+  const x=$('#lib-status');x.classList.remove('bad');x.innerHTML='';x.append(document.createTextNode(`Deleted “${sg.title}”. `),el('button',{class:'btn ghost sm',onclick:async()=>{const {id,created_at,updated_at,...p}=sg;try{if(LIB.mode==='server')await api('POST','/api/songs',p);else{const all=libLocal();all.push(sg);libLocalPut(all);}await libLoad();renderLib();libMsg('Restored.');}catch(e){libMsg('Could not restore: '+e.message,true);}}},'Undo'));clearTimeout(LIB.mt);LIB.mt=setTimeout(()=>{LIB.mt=null;renderLibStatus();},8000);
+ }catch(e){libMsg('Could not delete: '+e.message,true);}}
+function libExport(){const data=JSON.stringify({app:'fretwise',version:1,songs:LIB.songs},null,2);const a=el('a',{href:URL.createObjectURL(new Blob([data],{type:'application/json'})),download:'fretwise-songs.json'});document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+async function libImport(file){try{const j=JSON.parse(await file.text());const list=Array.isArray(j)?j:j.songs;if(!Array.isArray(list))throw new Error('no songs in this file');let n=0;
+  for(const sg of list){if(!sg||typeof sg.chords!=='string')continue;const p={title:String(sg.title||'Imported song').slice(0,120),chords:sg.chords,bpm:+sg.bpm||90,time_sig:sg.time_sig||'4/4',style:sg.style||'strum',legato:!!sg.legato,key:sg.key||null,notes:sg.notes||''};
+   if(LIB.mode==='server')await api('POST','/api/songs',p);else{const all=libLocal(),now=new Date().toISOString();all.push({id:Date.now()+n,...p,created_at:now,updated_at:now});libLocalPut(all);}n++;}
+  await libLoad();renderLib();libMsg(`Imported ${n} song${n===1?'':'s'}.`);}catch(e){libMsg('Could not import: '+e.message,true);}}
+async function libBackupSettings(){try{const {song,songId,songTitle,...rest}=S;await api('PUT','/api/settings',rest);libMsg('Settings backed up to the database.');}catch(e){libMsg('Could not back up: '+e.message,true);}}
+async function libRestoreSettings(){try{const j=await api('GET','/api/settings');Object.assign(S,j.settings);save();libMsg('Settings restored. Reloading…');setTimeout(()=>location.reload(),700);}catch(e){libMsg(/not found/.test(e.message)?'No settings backup yet.':'Could not restore: '+e.message,true);}}
+$('#lib-title').addEventListener('input',e=>{S.songTitle=e.target.value;save();renderLib();});
+$('#lib-title').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();libSave(false);}});
+$('#lib-save').onclick=()=>libSave(false);$('#lib-saveas').onclick=()=>libSave(true);
+libInit();
+$('#lib-new').onclick=()=>{if(playTimer)stopPlay();S.song='';S.songId=null;S.songTitle='';S.forced=null;S.songIsSample=false;save();renderSong();$('#sg-input').focus();};
+$('#lib-open').onclick=()=>{const l=$('#lib-list'),o=l.hidden;l.hidden=!o;$('#lib-open').setAttribute('aria-expanded',String(o));if(o)renderLibList();};
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&S.view==='song'){e.preventDefault();libSave(false);}});
 function renderSong(){
  const inp=$('#sg-input');if(document.activeElement!==inp)inp.value=S.song;
+ setTimeout(renderLib,0);
  $('#sg-bpm').value=S.bpm;
  const parsed=curChords();const valid=parsed.filter(Boolean);
  const bad=tokens(S.song).filter((t,i)=>!parsed[i]);
@@ -3202,6 +3290,7 @@ const TIPS={
  wheel:['Key wheel','A simplified circle of fifths turned so that your song\'s key is at the top. The three lit majors (IV, I, V) and three minors (ii, vi, iii) are the chords that belong to the key: next to each other on the wheel means they sound good together. The cards below arrange the same chords by role: home chords rest, dominant chords pull back home.'],
  lead:['Lead','A guitar plays over the band using the notes lit on the neck (the box, octave or run you picked). Scale run climbs and falls through the scale; Chord tones plays the notes of each chord; Improvise makes up a phrase every bar that lands on the chord; Call & answer plays one bar and leaves the next one for you.'],
  licks:['Licks','Short ready-made phrases guitarists use all the time, in blues, rock and country styles. Each one is shown as tab and on the neck, in the key you picked, and can be slowed down, looped, or traded with the jam band: it plays the lick, you answer.'],
+ library:['Song library','Songs are kept in this browser\'s storage, so they stay on this device and in this browser only. To keep them in a real database file, run the small Fretwise server from the repo (cd server && cargo run) and open http://127.0.0.1:8080. Export / Import moves songs between the two.'],
  note:['Note','The root of the chord you want to see.']};
 function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
