@@ -156,7 +156,8 @@ html.neck-pin #sg-neck.building{position:static!important;display:block!importan
 .cp-grid{display:grid;grid-template-columns:minmax(230px,320px) minmax(0,1fr);gap:14px 22px;align-items:start;margin-top:4px}
 @media(max-width:860px){.cp-grid{grid-template-columns:1fr}}
 .cp-wheel{display:flex;flex-direction:column;gap:8px;align-items:center}
-svg.cpw{width:100%;max-width:320px;display:block}
+svg.cpw{width:100%;max-width:320px;display:block;touch-action:manipulation}
+svg.circle{touch-action:manipulation}
 .cp-seg{fill:var(--surface-2);stroke:var(--surface);stroke-width:2;cursor:pointer;transition:fill .15s,filter .15s;outline:none}
 .cp-seg.on{fill:var(--accent-soft)}.cp-seg.key{fill:var(--accent)}.cp-seg:hover,.cp-seg:focus-visible{filter:brightness(1.25)}
 .cp-t{font:700 12.5px var(--f-body);fill:var(--muted);text-anchor:middle;pointer-events:none;opacity:.55}.cp-t.on{fill:var(--ink);opacity:1}.cp-t.key{fill:var(--on-accent)}
@@ -390,6 +391,10 @@ svg .snum{fill:var(--accent);font-weight:700}
 .pr-jam input[type=range],.tb-transport input[type=range]{accent-color:var(--accent)}
 .jam-status{font-weight:700;color:var(--accent);font-size:14px}
 svg .dot.playing{stroke:var(--ink);stroke-width:3.5}
+svg .dot.jam-on{stroke:var(--root);stroke-width:3.5;filter:drop-shadow(0 0 4px var(--root))}
+svg .dot.jam-root{stroke-width:5}
+.jamchip.tied small{color:var(--accent)}
+.jam-now{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:22px;margin:4px 0 2px}.jam-now b{font:800 22px/1 var(--f-display)}.jam-now small{color:var(--muted)}
 .theme-tg{width:36px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-size:16px;line-height:1;flex:none}
 .theme-tg:hover{border-color:var(--accent)}
 .tip{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line));background:transparent;color:var(--accent);font:700 10px/1 var(--f-body);text-transform:none;letter-spacing:0;cursor:help;padding:0;vertical-align:1px;margin-left:3px}
@@ -841,7 +846,7 @@ svg .mtog.muted text{fill:var(--bad)}
     <div class="sgc-head"><h3>Circle of fifths</h3><span class="sgc-sub" id="sgc-sub"></span></div>
     <div class="cgrid">
       <div><svg class="circle" id="circle-svg" viewBox="0 0 520 520" aria-label="Circle of fifths"></svg>
-        <div class="sgc-leg"><span><i class="k"></i>Key of the song</span><span><i class="f"></i>Its closest chords</span><span><i class="d"></i>Chords in your song</span></div></div>
+        <div class="sgc-leg"><span>Tap: hear it · double-tap: make it the song key</span><span><i class="k"></i>Key of the song</span><span><i class="f"></i>Its closest chords</span><span><i class="d"></i>Chords in your song</span></div></div>
       <div id="circle-panel"></div>
     </div>
     <details class="help"><summary>How the circle works</summary><div class="help-body">
@@ -1350,7 +1355,13 @@ const JMAP={major:[],ionian:[],natmin:[],aeolian:[],minpent:['mblues','blues'],b
  harmin:['harm','harm2','andal'],harmin1:['harm','harm2','andal'],melmin:['melm','mjazz'],melmin1:['melm','mjazz'],dorian:['dor','dor2'],phrygian:['phr','phr2'],lydian:['lyd','lyd2'],
  mixolydian:['mix','mix2','blues'],locrian:['loc'],phrydom:['pdom','andal'],lyddom:['ldom'],mixb6:['mixb6'],hungmin:['harm','harm2'],dblharm:['pdom']};
 const GEN_MAJ=['maj1','maj2','fifties','sad','two','jazz','mix','blues'],GEN_MIN=['min1','min2','andal','epic','mtwo','mjazz','mblues'];
+function jamSongOption(){const valid=(typeof curChords==='function'?curChords():[]).filter(Boolean);if(!valid.length)return null;
+ const ranks=detectKey(valid);let key=ranks[0];if(S.forced){const f=ranks.find(r=>r.t===S.forced.t&&r.mode===S.forced.mode);if(f)key=f;}
+ const r0=pcOf(S.root);const ch=valid.map(c=>[(c.pc-r0+12)%12,c.type,{midis:songMidis(c),label:chordLabel(c),tied:!!c.tied}]);
+ return{name:'Your song · '+pretty(key.name)+' '+key.mode,ch,grp:'From the Song Builder',k:'song',song:true,key};}
 function jamOptions(it){const has3=it.f.includes('3'),hasb3=it.f.includes('b3');const q=has3&&!hasb3?'maj':hasb3?'min':'x';
+ const so=jamSongOption();if(so)return[so,...jamOptions0(it,q,has3,hasb3)];return jamOptions0(it,q,has3,hasb3);}
+function jamOptions0(it,q){
  const own=(JMAP[it.id]||[]).map(k=>({...JP[k],grp:'Made for this scale',k}));
  const gen=(q==='maj'?GEN_MAJ:q==='min'?GEN_MIN:[]).filter(k=>!own.some(o=>o.k===k)).map(k=>({...JP[k],grp:q==='maj'?'Common in a major key':'Common in a minor key',k}));
  return[...own,...gen,{name:'Drone on the root',ch:[[0,q==='maj'?'maj':q==='min'?'min':'five']],grp:'Simple',k:'drone'}];}
@@ -1369,7 +1380,11 @@ function jamPattern(style,ts){const n=tsSlots(ts),bs=tsBeatSlots(ts),E=[];
  return[[0,'b'],[0,'D']];}
 const JAM={on:false,timer:null,nextT:0,bar:0,prog:null,root:0,bus:null,key:'',taps:[],beatTimers:[]};
 function jamClick(t,acc){const c=ac();const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=acc?1900:1300;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(acc?.22:.13,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(JAM.bus);o.start(t);o.stop(t+.06);}
-function jamStop(){JAM.on=false;clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
+// light the chord tones on the explorer neck while the band plays
+function jamMark(pc,type,idx){const tun=tuning(),ivs=new Set(CH[type].f.map(l=>IV[l]%12));
+ $$('#ex-board .dot[data-k]').forEach(d=>{const[st,f]=d.dataset.k.split(',').map(Number);const rel=(tun[st]+f-pc+120)%12;const on=ivs.has(rel);d.classList.toggle('jam-on',on);d.classList.toggle('jam-root',on&&rel===0);});
+ const now=$('#jam-now');if(now){const ch=JAM.prog.ch,nx=ch[(idx+1)%ch.length];const nm=x=>x[2]&&x[2].label?x[2].label:pretty(spellIv(S.root,REL_LBL[x[0]])+CH[x[1]].sym);now.innerHTML=`<span class="lbl">Now</span><b>${nm(ch[idx])}</b><span class="lbl">next</span><span>${nm(nx)}</span><small>· chord tones are ringed on the neck</small>`;}}
+function jamStop(){JAM.on=false;$$('#ex-board .jam-on').forEach(d=>d.classList.remove('jam-on','jam-root'));const jn=$('#jam-now');if(jn)jn.innerHTML='';clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
  $$('.jamchip.on,.jbeat.on').forEach(x=>x.classList.remove('on'));const b=$('#jam-go');if(b){b.textContent='▶ Start jam';b.classList.remove('ghost');}const s=$('#jam-status');if(s)s.textContent='';}
 function jamStart(prog,rootPc,key){jamStop();const c=ac();JAM.bus=c.createGain();JAM.bus.gain.value=.75;JAM.bus.connect(master);
  Object.assign(JAM,{on:true,prog,root:rootPc,key,bar:S.jamCount?-1:0,nextT:c.currentTime+.12});JAM.timer=setInterval(jamTick,30);jamTick();
@@ -1382,7 +1397,7 @@ function jamTick(){const c=ac(),ts=S.jamTS||'4/4',n=tsSlots(ts),bs=tsBeatSlots(t
   const nb=n/bs;for(let k=0;k<nb;k++){const tt=beatAt(k);JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('.jbeat').forEach((x,i)=>x.classList.toggle('on',i===k));const s=$('#jam-status');if(s)s.textContent=bar<0?`Count-in ${k+1}`:'';},Math.max(0,(tt-c.currentTime)*1000)));}
   if(JAM.beatTimers.length>64)JAM.beatTimers=JAM.beatTimers.slice(-32);
   if(bar>=0){const bpc=S.jamBpc||1,idx=Math.floor(bar/bpc)%JAM.prog.ch.length,[off,type]=JAM.prog.ch[idx],pc=(JAM.root+off)%12;
-   const v=bestVoicingMidis(pc,type,songTuning()).slice().sort((a,b)=>a-b);const bass=40+((pc-4+12)%12),fifth=bass+7<=52?bass+7:bass-5;
+   const ex=JAM.prog.ch[idx][2];const v=(ex&&ex.midis?ex.midis:bestVoicingMidis(pc,type,songTuning())).slice().sort((a,b)=>a-b);const bass=40+((pc-4+12)%12),fifth=bass+7<=52?bass+7:bass-5;
    const at=s=>{let x=t+s*sd;if(swing&&s%2===1)x+=sd/3;return x-c.currentTime;};
    jamPattern(S.jamStyle||'pop',ts).forEach(([s,k,a])=>{const d=at(s);
     if(k==='b')pluck(freq(bass),d,sd*bs*2,.2,{dest:JAM.bus});
@@ -1394,15 +1409,17 @@ function jamTick(){const c=ac(),ts=S.jamTS||'4/4',n=tsSlots(ts),bs=tsBeatSlots(t
     else if(k==='p'){const up=v.slice(1);if(up.length)pluck(freq(up[(a-1)%up.length]),d,sd*3,.13,{dest:JAM.bus});}
     else if(k==='g'){[bass,bass+a].forEach((m,i)=>pluck(freq(m),d+i*.006,sd*1.3,.12,{dest:JAM.bus}));}
     else if(k==='x'){v.slice(-3).forEach((m,i)=>pluck(freq(m),d+i*.006,.11,.09,{dest:JAM.bus}));}});
-   JAM.beatTimers.push(setTimeout(()=>{if(JAM.on)$$('.jamchip').forEach((x,i)=>x.classList.toggle('on',i===idx));},Math.max(0,(t-c.currentTime)*1000)));}
+   JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('.jamchip').forEach((x,i)=>x.classList.toggle('on',i===idx));jamMark(pc,type,idx);},Math.max(0,(t-c.currentTime)*1000)));}
   JAM.bar++;JAM.nextT+=barDur;}}
 function jamTap(){const now=performance.now();JAM.taps=JAM.taps.filter(x=>now-x<2500);JAM.taps.push(now);
  if(JAM.taps.length>=2){const d=[];for(let i=1;i<JAM.taps.length;i++)d.push(JAM.taps[i]-JAM.taps[i-1]);const avg=d.reduce((a,b)=>a+b,0)/d.length;let bpm=Math.round(60000/avg);
   if((S.jamTS||'4/4').endsWith('/8'))bpm=Math.round(bpm);bpm=Math.max(50,Math.min(200,bpm));S.jamBpm=bpm;save();const r=$('#jam-bpm-r'),i=$('#jam-bpm');if(r)r.value=bpm;if(i)i.value=bpm;}}
 function renderJam(it,rootPc){
- const jam=$('#ex-jam');jam.innerHTML='';const opts=jamOptions(it);if(S.jamIdx==null||S.jamIdx>=opts.length)S.jamIdx=0;
+ const jam=$('#ex-jam');jam.innerHTML='';const opts=jamOptions(it);
+ if(S.jamK==null&&opts[0].song)S.jamK='song';
+ {let ix=opts.findIndex(o=>o.k===S.jamK);if(ix<0)ix=(S.jamIdx!=null&&S.jamIdx<opts.length)?S.jamIdx:0;S.jamIdx=ix;}
  if(!S.jamBpm)S.jamBpm=90;if(!S.jamStyle)S.jamStyle='pop';if(!S.jamTS)S.jamTS='4/4';if(!S.jamFeel)S.jamFeel='straight';if(!S.jamBpc)S.jamBpc=1;
- const prog=opts[S.jamIdx];const chName=([off,t])=>pretty(spellIv(S.root,REL_LBL[off])+CH[t].sym);
+ const prog=opts[S.jamIdx];const chName=x=>x[2]&&x[2].label?x[2].label:pretty(spellIv(S.root,REL_LBL[x[0]])+CH[x[1]].sym);
  const key=[S.root,it.id,S.jamIdx,S.jamStyle,S.jamTS,S.jamFeel,S.jamBpc].join('|');
  const head=el('div',{class:'pr-row'});head.appendChild(el('h3',{},'Jam over it <span class="beta">BETA</span> '+tipBtn('jam')));
  const go=el('button',{class:'btn'+(JAM.on?' ghost':''),id:'jam-go'},JAM.on?'■ Stop jam':'▶ Start jam');go.onclick=()=>{if(JAM.on)jamStop();else jamStart(prog,rootPc,key);};
@@ -1411,11 +1428,16 @@ function renderJam(it,rootPc){
  const r1=el('div',{class:'pr-row'});r1.appendChild(el('span',{class:'lbl'},'Progression '+tipBtn('prog')));
  const sel=el('select',{id:'jam-prog','aria-label':'Backing progression'});const groups={};
  opts.forEach((o,i)=>{(groups[o.grp]=groups[o.grp]||el('optgroup',{label:o.grp})).appendChild(el('option',{value:String(i)},`${o.ch.length>8?[...new Map(o.ch.map(x=>[x.join(),x])).values()].map(chName).join(' '):o.ch.map(chName).join(' – ')}   ·   ${o.name}`));});
- Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=String(S.jamIdx);sel.onchange=()=>{S.jamIdx=+sel.value;save();renderExplorer();};
+ Object.values(groups).forEach(g=>sel.appendChild(g));sel.value=String(S.jamIdx);sel.onchange=()=>{S.jamIdx=+sel.value;S.jamK=opts[S.jamIdx].k;if(opts[S.jamIdx].song){S.jamBpm=S.bpm||S.jamBpm;if(JTS.includes(S.sgTime))S.jamTS=S.sgTime;}save();renderExplorer();};
  r1.appendChild(sel);jam.appendChild(r1);
+ if(prog.song){const sk=prog.key;const same=pcOf(S.root)===sk.t&&((sk.mode==='major'&&['major','ionian','majpent'].includes(it.id))||(sk.mode==='minor'&&['natmin','aeolian','minpent','blues','harmin','harmin1'].includes(it.id)));
+  const hint=el('p',{class:'dd-hint',style:'margin:2px 0 6px'},same?`This is the progression you built in the Song Builder. Solo over it with the ${pretty(S.root)} ${it.name.toLowerCase()} shown above.`:`Your song is in <b>${pretty(sk.name)} ${sk.mode}</b>. `);
+  if(!same){hint.appendChild(el('button',{class:'btn ghost sm',onclick:()=>{S.root=sk.name;S.kind='scales';S.item.scales=sk.mode==='major'?'major':'natmin';save();renderExplorer();}},`Show the ${pretty(sk.name)} ${sk.mode} scale`));hint.appendChild(document.createTextNode(' '));hint.appendChild(el('button',{class:'btn ghost sm',onclick:()=>{S.root=sk.name;S.kind='scales';S.item.scales=sk.mode==='major'?'majpent':'minpent';save();renderExplorer();}},'or its pentatonic'));}
+  jam.appendChild(hint);}
  const chips=el('div',{class:'row',style:'gap:6px'});const ROMB=['I','♭II','II','♭III','III','IV','♯IV','V','♭VI','VI','♭VII','VII'];
  const rnOf=([off,t])=>{let r=ROMB[off];const f=CH[t].f;if(f.includes('b3')&&!f.includes('3'))r=r.replace(/[IV]+/,m=>m.toLowerCase());return r+(CH[t].rs||'');};
- prog.ch.forEach(x=>{const rName=spellIv(S.root,REL_LBL[x[0]]);chips.appendChild(el('span',{class:'jamchip','data-pop':rName+CH[x[1]].sym,'data-popctx':'any'},`<small>${pretty(rnOf(x))}</small><b>${chName(x)}</b><em>${CH[x[1]].f.map(l=>pretty(spellIv(rName,l))).join(' ')}</em>`));});jam.appendChild(chips);
+ prog.ch.forEach(x=>{const rName=spellIv(S.root,REL_LBL[x[0]]);chips.appendChild(el('span',{class:'jamchip'+(x[2]&&x[2].tied?' tied':''),'data-pop':rName+CH[x[1]].sym,'data-popctx':'any'},`<small>${x[2]&&x[2].tied?'⌒ hold':pretty(rnOf(x))}</small><b>${chName(x)}</b><em>${CH[x[1]].f.map(l=>pretty(spellIv(rName,l))).join(' ')}</em>`));});jam.appendChild(chips);
+ jam.appendChild(el('div',{class:'jam-now',id:'jam-now'}));
  // style + time + feel + bars
  if(S.jamStyle==='shuffle'&&(S.jamTS==='3/4'||S.jamTS==='6/8'))S.jamStyle='pop';
  const dd=(label,tip,opts2,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label+' '+tipBtn(tip)));const x=el('select',{'aria-label':label});
@@ -1811,7 +1833,8 @@ function renderCircle(){
  row.appendChild(el('button',{class:'btn ghost',onclick:()=>{S.root=key.name;S.kind='scales';S.item.scales=minor?'natmin':'major';save();go('explore');}},'Show scale on fretboard'));
  p.appendChild(row);
 }
-$('#circle-svg').addEventListener('click',e=>{const t=e.target;if(t.dataset&&t.dataset.i!==undefined){S.circle={i:+t.dataset.i,minor:t.dataset.min==='1'};save();renderCircle();const k=S.circle.minor?C_MIN[S.circle.i]:C_MAJ[S.circle.i];strum(bestVoicingMidis(pcOf(k),S.circle.minor?'min':'maj',TU.std.n));}});
+dblTap($('#circle-svg'),e=>{const t=e.target;if(t.dataset&&t.dataset.i!==undefined){S.circle={i:+t.dataset.i,minor:t.dataset.min==='1'};save();renderCircle();const k=S.circle.minor?C_MIN[S.circle.i]:C_MAJ[S.circle.i];strum(bestVoicingMidis(pcOf(k),S.circle.minor?'min':'maj',TU.std.n));}},
+ e=>{const t=e.target;if(!(t.dataset&&t.dataset.i!==undefined))return;const minor=t.dataset.min==='1',k=minor?C_MIN[+t.dataset.i]:C_MAJ[+t.dataset.i];S.forced={t:pcOf(k),mode:minor?'minor':'major'};S.circle={i:+t.dataset.i,minor};save();renderSong();const b=$('#sg-circle');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');});
 
 /* ---------- song builder: analysis ---------- */
 function normSuffix(s){
@@ -1950,6 +1973,8 @@ function songTok(){const tk=tokens(S.song);return{tk,vi:tk.map((t,i)=>parseChord
 function songMove(from,to){const{tk,vi}=songTok();if(to<0||to>=vi.length)return;const vals=vi.map(j=>tk[j]);const[m]=vals.splice(from,1);vals.splice(to,0,m);vi.forEach((j,k)=>tk[j]=vals[k]);
  S.song=tk.join(' ');S.songIsSample=false;save();renderSong();const c=$(`#sg-prog .pc[data-i="${to}"]`);if(c)c.focus({preventScroll:true});}
 let undoT=null;
+// one tap = single(e); two taps within 320ms = dbl(e)
+function dblTap(elm,single,dbl){let last=0,tm=null,lastT=null;elm.addEventListener('click',e=>{const t=e.target;const now=Date.now();if(now-last<320&&t===lastT){clearTimeout(tm);last=0;dbl(e);}else{last=now;lastT=t;clearTimeout(tm);tm=setTimeout(()=>{single(e);},320);}});}
 // the simple wheel: the song's key sits at the top, its chords are lit, everything is one tap (or drag) away
 const ROLE={Tonic:'home',Predominant:'moves away',Dominant:'pulls home',Subtonic:'rock colour'};
 function renderCompass(key,valid){const box=$('#sg-compass');if(!box)return;box.innerHTML='';
@@ -1958,7 +1983,7 @@ function renderCompass(key,valid){const box=$('#sg-compass');if(!box)return;box.
  const head=el('div',{class:'row',style:'justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap'});
  head.appendChild(el('h3',{},(valid.length?`Chords that fit ${pretty(key.name)} ${key.mode}`:'Chords that fit your key')+' '+tipBtn('wheel')));
  const tg=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:13px'});const cb=el('input',{type:'checkbox'});cb.checked=!!S.sev;cb.onchange=()=>{S.sev=cb.checked;save();renderSong();};tg.append(cb,document.createTextNode('7th chords'));head.appendChild(tg);box.appendChild(head);
- box.appendChild(el('p',{class:'dd-hint'},valid.length?'Your key is at the top of the wheel; the lit segments are its chords. Tap or drag any chord into your song.':'Add one chord above and the wheel turns to your key. Until then it shows C major.'));
+ box.appendChild(el('p',{class:'dd-hint'},valid.length?'Your key is at the top of the wheel; the lit segments are its chords. Tap or drag any chord into your song. Double-tap a segment to make it the key.':'Add one chord above and the wheel turns to your key. Until then it shows C major.'));
  const grid=el('div',{class:'cp-grid'});
  // ----- wheel -----
  const cx=160,cy=160,R=[152,104,62];let sv='';
@@ -1975,7 +2000,7 @@ function renderCompass(key,valid){const box=$('#sg-compass');if(!box)return;box.
    if(inSong(pc,min))sv+=`<circle class="cdot" cx="${cx+(r[0]-9)*Math.sin(am)}" cy="${cy-(r[0]-9)*Math.cos(am)}" r="4.5"></circle>`;});}
  sv+=`<circle cx="${cx}" cy="${cy}" r="${R[2]-6}" class="cp-core"></circle><text class="cp-key" x="${cx}" y="${cy+2}">${pretty(key.name)}</text><text class="cp-mode" x="${cx}" y="${cy+18}">${key.mode}</text>`;
  const wrap=el('div',{class:'cp-wheel'});wrap.innerHTML=`<svg class="cpw" viewBox="0 0 320 320" aria-label="Key wheel">${sv}</svg>`;
- wrap.addEventListener('click',e=>{const t=e.target.closest('path[data-add]');if(t)addChord(t.dataset.add);});
+ dblTap(wrap,e=>{const t=e.target.closest('path[data-add]');if(t)addChord(t.dataset.add);},e=>{const t=e.target.closest('path[data-add]');if(!t)return;const c=parseChord(t.dataset.add);if(!c)return;S.forced={t:c.pc,mode:isMinorish(c)?'minor':'major'};save();renderSong();const b=$('#sg-compass');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');});
  wrap.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const t=e.target.closest('path[data-add]');if(t){e.preventDefault();addChord(t.dataset.add);}}});
  const near=el('div',{class:'cp-near'});near.appendChild(el('span',{class:'cp-lbl'},'Nearby keys'));
  const nb=(t,mode,label)=>{const b=el('button',{class:'btn ghost sm',onclick:()=>{S.forced={t,mode};save();renderSong();}},label);near.appendChild(b);};
