@@ -391,8 +391,13 @@ svg .snum{fill:var(--accent);font-weight:700}
 .pr-jam input[type=range],.tb-transport input[type=range]{accent-color:var(--accent)}
 .jam-status{font-weight:700;color:var(--accent);font-size:14px}
 svg .dot.playing{stroke:var(--ink);stroke-width:3.5}
-svg .dot.jam-on{stroke:var(--root);stroke-width:3.5;filter:drop-shadow(0 0 4px var(--root))}
-svg .dot.jam-root{stroke-width:5}
+svg .jam-ov .jov{fill:color-mix(in srgb,var(--root) 18%,transparent);stroke:var(--root);stroke-width:3;pointer-events:none;opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(1.5);transition:opacity .18s,transform .25s cubic-bezier(.2,.9,.3,1.3)}
+svg .jam-ov.in .jov{opacity:1;transform:scale(1)}
+svg .jam-ov .jov.r{stroke-width:4.5;filter:drop-shadow(0 0 5px var(--root))}
+svg .jam-ov .jov-x{fill:var(--bad,#e66);font:700 15px var(--f-body);pointer-events:none}
+svg .dot.lead{fill:var(--accent)!important;stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 7px var(--accent))}
+.jam-float #jf-lead{max-width:150px}
+@media (max-width:520px){.sg-float.jam-float{flex-wrap:wrap;border-radius:22px;row-gap:8px}.jam-float .sgf-now{flex:1}.jam-float #jf-lead{flex:1;max-width:none;font-size:14px;order:3}.jam-float .sgf-bpm{order:4}}
 .jamchip.tied small{color:var(--accent)}
 .jam-now{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:22px;margin:4px 0 2px}.jam-now b{font:800 22px/1 var(--f-display)}.jam-now small{color:var(--muted)}
 .theme-tg{width:36px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-size:16px;line-height:1;flex:none}
@@ -677,6 +682,7 @@ svg .mtog.muted text{fill:var(--bad)}
 </section>
 
 <!-- CHORD SHAPES -->
+<div class="sg-float jam-float" id="jam-float" aria-hidden="true"><button class="btn" id="jf-play">▶ Jam</button><span class="sgf-now" id="jf-now">Jam</span><select id="jf-lead" aria-label="Lead over the jam"></select><span class="sgf-bpm"><button class="btn ghost sm" id="jf-dn" aria-label="Slower">−</button><b id="jf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="jf-up" aria-label="Faster">+</button></span></div>
 <section class="view" id="v-keys" hidden>
   <div class="head">
     <h1 class="vt">Chord shapes</h1>
@@ -1357,7 +1363,7 @@ const JMAP={major:[],ionian:[],natmin:[],aeolian:[],minpent:['mblues','blues'],b
 const GEN_MAJ=['maj1','maj2','fifties','sad','two','jazz','mix','blues'],GEN_MIN=['min1','min2','andal','epic','mtwo','mjazz','mblues'];
 function jamSongOption(){const valid=(typeof curChords==='function'?curChords():[]).filter(Boolean);if(!valid.length)return null;
  const ranks=detectKey(valid);let key=ranks[0];if(S.forced){const f=ranks.find(r=>r.t===S.forced.t&&r.mode===S.forced.mode);if(f)key=f;}
- const r0=pcOf(S.root);const ch=valid.map(c=>[(c.pc-r0+12)%12,c.type,{midis:songMidis(c),label:chordLabel(c),tied:!!c.tied}]);
+ const r0=pcOf(S.root);const ch=valid.map(c=>{const v=songVoicing(c);return[(c.pc-r0+12)%12,c.type,{midis:songMidis(c),frets:v?v.frets.slice():null,label:chordLabel(c),tied:!!c.tied}];});
  return{name:'Your song · '+pretty(key.name)+' '+key.mode,ch,grp:'From the Song Builder',k:'song',song:true,key};}
 function jamOptions(it){const has3=it.f.includes('3'),hasb3=it.f.includes('b3');const q=has3&&!hasb3?'maj':hasb3?'min':'x';
  const so=jamSongOption();if(so)return[so,...jamOptions0(it,q,has3,hasb3)];return jamOptions0(it,q,has3,hasb3);}
@@ -1380,22 +1386,61 @@ function jamPattern(style,ts){const n=tsSlots(ts),bs=tsBeatSlots(ts),E=[];
  return[[0,'b'],[0,'D']];}
 const JAM={on:false,timer:null,nextT:0,bar:0,prog:null,root:0,bus:null,key:'',taps:[],beatTimers:[]};
 function jamClick(t,acc){const c=ac();const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=acc?1900:1300;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(acc?.22:.13,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(JAM.bus);o.start(t);o.stop(t+.06);}
-// light the chord tones on the explorer neck while the band plays
-function jamMark(pc,type,idx){const tun=tuning(),ivs=new Set(CH[type].f.map(l=>IV[l]%12));
- $$('#ex-board .dot[data-k]').forEach(d=>{const[st,f]=d.dataset.k.split(',').map(Number);const rel=(tun[st]+f-pc+120)%12;const on=ivs.has(rel);d.classList.toggle('jam-on',on);d.classList.toggle('jam-root',on&&rel===0);});
- const now=$('#jam-now');if(now){const ch=JAM.prog.ch,nx=ch[(idx+1)%ch.length];const nm=x=>x[2]&&x[2].label?x[2].label:pretty(spellIv(S.root,REL_LBL[x[0]])+CH[x[1]].sym);now.innerHTML=`<span class="lbl">Now</span><b>${nm(ch[idx])}</b><span class="lbl">next</span><span>${nm(nx)}</span><small>· chord tones are ringed on the neck</small>`;}}
-function jamStop(){JAM.on=false;$$('#ex-board .jam-on').forEach(d=>d.classList.remove('jam-on','jam-root'));const jn=$('#jam-now');if(jn)jn.innerHTML='';clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
+// show the shape the band is playing (the Song Builder shape when the song is the progression)
+function bestVoicingFrets(rootPc,typeId,tun){const k=rootPc+'|'+typeId+'|'+tun.join(',');if(!vcache.has(k)){const c=CH[typeId];vcache.set(k,voicings(rootPc,c.f,c.opt,tun));}
+ const vs=vcache.get(k);return vs.length?[...vs].sort((a,b)=>b.score-a.score)[0].frets.slice():null;}
+const NECK_G={nutX:82,fw:56,sg:24,top:20};
+function neckXY(st,f,n){const{nutX,fw,sg,top}=NECK_G;return[f===0?nutX-24:nutX+(f-.5)*fw,top+stRow(st,n)*sg];}
+function jamMark(pc,type,idx){const svg=$('#ex-board svg');const ex=JAM.prog.ch[idx][2];const tun=tuning(),n=tun.length;
+ if(svg){const host=svg.querySelector(':scope>g[transform]')||svg;let g=host.querySelector('.jam-ov');if(!g){g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('class','jam-ov');host.appendChild(g);}
+  const fr=(ex&&ex.frets&&ex.frets.length===n)?ex.frets:bestVoicingFrets(pc,type,tun);let h='';
+  if(fr){const pts=[];fr.forEach((f,st)=>{if(f<0)return;const[x,y]=neckXY(st,f,n);pts.push([x,y]);const isR=(tun[st]+f)%12===pc;h+=`<circle class="jov${isR?' r':''}" cx="${x}" cy="${y}" r="${isR?15:13.5}"></circle>`;});
+   fr.forEach((f,st)=>{if(f>=0)return;const[x,y]=neckXY(st,0,n);h+=`<text class="jov-x" x="${x}" y="${y+5}" text-anchor="middle">×</text>`;});}
+  g.innerHTML=h;g.classList.remove('in');void g.getBBox;requestAnimationFrame(()=>g.classList.add('in'));
+  if(fr){const fz=fr.filter(f=>f>0);if(fz.length){const d=$('#ex-board .dot[data-k]');const w=$('#ex-board');if(w&&w.scrollWidth>w.clientWidth+2){const[x]=neckXY(0,Math.round((Math.min(...fz)+Math.max(...fz))/2),n);const sv=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal.width||1;let px=x/vb*sv.width;if(S.lefty)px=sv.width-px;const tgt=px-w.clientWidth/2;if(Math.abs(w.scrollLeft-tgt)>w.clientWidth*.3)w.scrollTo({left:tgt,behavior:'smooth'});}}}}
+ const nm=x=>x[2]&&x[2].label?x[2].label:pretty(spellIv(S.root,REL_LBL[x[0]])+CH[x[1]].sym);const ch=JAM.prog.ch,nx=ch[(idx+1)%ch.length];
+ const now=$('#jam-now');if(now)now.innerHTML=`<span class="lbl">Now</span><b>${nm(ch[idx])}</b><span class="lbl">next</span><span>${nm(nx)}</span><small>· the shape is ringed on the neck</small>`;
+ const fn=$('#jf-now');if(fn)fn.innerHTML=`${nm(ch[idx])} <small>→ ${nm(nx)}</small>`;}
+// ---- lead: something plays over the band, on the notes shown on the neck ----
+const LEADS=[['off','Off'],['scale','Scale run'],['tones','Chord tones'],['improv','Improvise'],['call','Call & answer']];
+function jamPool(){const dots=[...$$('#ex-board .dot[data-k]')].filter(d=>!d.closest('g.dim'));if(!dots.length)return[];
+ let pts=dots.map(d=>{const[st,f]=d.dataset.k.split(',').map(Number);return{st,f,m:+d.dataset.m};});
+ const uniq=new Set(pts.map(p=>p.m));
+ if(uniq.size>16){const tun=tuning(),r=pcOf(S.root);let w0=0;for(let f=0;f<12;f++)if((tun[0]+f)%12===r){w0=f;break;}if(w0<2)w0+=0;pts=pts.filter(p=>p.f>=Math.max(0,w0-1)&&p.f<=w0+4);}
+ const by=new Map();pts.forEach(p=>{const o=by.get(p.m);if(!o||Math.abs(p.f-5)<Math.abs(o.f-5))by.set(p.m,p);});
+ return[...by.values()].sort((a,b)=>a.m-b.m);}
+function jamLeadBar(t,n,sd,pc,type){const mode=S.jamLead||'off';if(mode==='off')return;const pool=jamPool();if(pool.length<3)return;const c=ac();
+ const ivs=new Set(CH[type].f.map(l=>IV[l]%12)),isCT=p=>ivs.has((p.m-pc+120)%12);const ct=pool.filter(isCT);
+ if(JAM.lp==null||JAM.lp>=pool.length){JAM.lp=0;JAM.ld=1;}
+ const near=(i,want)=>{let best=i,bd=99;pool.forEach((p,k)=>{if(want(p)&&Math.abs(k-i)<bd){bd=Math.abs(k-i);best=k;}});return best;};
+ const notes=[];// [slot, poolIndex, lengthInSlots]
+ if(mode==='scale'){for(let k=0;k<n;k++){notes.push([k,JAM.lp,1]);JAM.lp+=JAM.ld;if(JAM.lp>=pool.length){JAM.lp=pool.length-2;JAM.ld=-1;}if(JAM.lp<0){JAM.lp=1;JAM.ld=1;}}}
+ else if(mode==='tones'){const ci=ct.map(p=>pool.indexOf(p));if(!ci.length)return;if(JAM.lt==null)JAM.lt=0;
+  const seq=[...ci,...ci.slice(1,-1).reverse()];for(let k=0;k<n;k++){notes.push([k,seq[(JAM.lt+k)%seq.length],1]);}JAM.lt=(JAM.lt+n)%seq.length;}
+ else if(mode==='improv'||mode==='call'){
+  const RH=n%3===0?[[1,0,1,1,0,1],[1,1,1,0,1,0],[0,1,1,1,0,1]]:[[1,0,1,1,0,1,1,0],[1,1,0,1,1,1,0,0],[0,1,1,0,1,1,1,0],[1,0,0,1,1,0,1,0]];
+  const rest=mode==='call'&&(JAM.bar%2===1);if(rest)return;
+  const rh=RH[Math.floor(Math.random()*RH.length)];let i=near(JAM.lp,isCT);
+  const on=[];for(let k=0;k<n;k++)if(rh[k%rh.length])on.push(k);
+  on.forEach((k,j)=>{if(j>0){const stp=[-2,-1,-1,1,1,2,1,-1][Math.floor(Math.random()*8)];i=Math.max(0,Math.min(pool.length-1,i+stp));if(k%(n/ (n%3===0?2:4))===0)i=near(i,isCT);}
+   const len=j===on.length-1?Math.max(1,n-k):(on[j+1]-k);notes.push([k,i,len]);});
+  i=near(i,isCT);notes[notes.length-1][1]=i;JAM.lp=i;}
+ const leg=n%3===0?1:1;
+ notes.forEach(([k,ix,len])=>{const p=pool[ix];if(!p)return;let at=t+k*sd;if((S.jamFeel==='swing'||S.jamStyle==='shuffle')&&!(n%3===0)&&k%2===1)at+=sd/3;
+  pluck(freq(p.m),at-c.currentTime,sd*len*1.05+.05,.24,{dest:JAM.bus});
+  JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('#ex-board .dot.lead').forEach(d=>d.classList.remove('lead'));const d=document.querySelector(`#ex-board .dot[data-k="${p.st},${p.f}"]`);if(d){d.classList.add('lead');followDot(d);}},Math.max(0,(at-c.currentTime)*1000)));});}
+function jamStop(){JAM.on=false;JAM.lp=null;JAM.lt=null;$$('#ex-board .jam-ov').forEach(g=>g.remove());$$('#ex-board .dot.lead').forEach(d=>d.classList.remove('lead'));jfSync();const jn=$('#jam-now');if(jn)jn.innerHTML='';clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
  $$('.jamchip.on,.jbeat.on').forEach(x=>x.classList.remove('on'));const b=$('#jam-go');if(b){b.textContent='▶ Start jam';b.classList.remove('ghost');}const s=$('#jam-status');if(s)s.textContent='';}
 function jamStart(prog,rootPc,key){jamStop();const c=ac();JAM.bus=c.createGain();JAM.bus.gain.value=.75;JAM.bus.connect(master);
  Object.assign(JAM,{on:true,prog,root:rootPc,key,bar:S.jamCount?-1:0,nextT:c.currentTime+.12});JAM.timer=setInterval(jamTick,30);jamTick();
- const b=$('#jam-go');if(b){b.textContent='■ Stop jam';b.classList.add('ghost');}}
+ const b=$('#jam-go');if(b){b.textContent='■ Stop jam';b.classList.add('ghost');}jfSync();}
 function jamTick(){const c=ac(),ts=S.jamTS||'4/4',n=tsSlots(ts),bs=tsBeatSlots(ts),bpm=S.jamBpm||90;
  const sd=ts.endsWith('/8')?60/bpm/3:30/bpm,barDur=sd*n,swing=(S.jamFeel==='swing'||S.jamStyle==='shuffle')&&ts.endsWith('/4');
  while(JAM.on&&JAM.nextT<c.currentTime+.35){const t=JAM.nextT,bar=JAM.bar;
   const beatAt=k=>t+k*bs*sd;
   if(bar<0||S.jamClick)for(let k=0;k<n/bs;k++)jamClick(beatAt(k),k===0);
   const nb=n/bs;for(let k=0;k<nb;k++){const tt=beatAt(k);JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('.jbeat').forEach((x,i)=>x.classList.toggle('on',i===k));const s=$('#jam-status');if(s)s.textContent=bar<0?`Count-in ${k+1}`:'';},Math.max(0,(tt-c.currentTime)*1000)));}
-  if(JAM.beatTimers.length>64)JAM.beatTimers=JAM.beatTimers.slice(-32);
+  if(JAM.beatTimers.length>160)JAM.beatTimers=JAM.beatTimers.slice(-80);
   if(bar>=0){const bpc=S.jamBpc||1,idx=Math.floor(bar/bpc)%JAM.prog.ch.length,[off,type]=JAM.prog.ch[idx],pc=(JAM.root+off)%12;
    const ex=JAM.prog.ch[idx][2];const v=(ex&&ex.midis?ex.midis:bestVoicingMidis(pc,type,songTuning())).slice().sort((a,b)=>a-b);const bass=40+((pc-4+12)%12),fifth=bass+7<=52?bass+7:bass-5;
    const at=s=>{let x=t+s*sd;if(swing&&s%2===1)x+=sd/3;return x-c.currentTime;};
@@ -1409,6 +1454,7 @@ function jamTick(){const c=ac(),ts=S.jamTS||'4/4',n=tsSlots(ts),bs=tsBeatSlots(t
     else if(k==='p'){const up=v.slice(1);if(up.length)pluck(freq(up[(a-1)%up.length]),d,sd*3,.13,{dest:JAM.bus});}
     else if(k==='g'){[bass,bass+a].forEach((m,i)=>pluck(freq(m),d+i*.006,sd*1.3,.12,{dest:JAM.bus}));}
     else if(k==='x'){v.slice(-3).forEach((m,i)=>pluck(freq(m),d+i*.006,.11,.09,{dest:JAM.bus}));}});
+   jamLeadBar(t,n,sd,pc,type);
    JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('.jamchip').forEach((x,i)=>x.classList.toggle('on',i===idx));jamMark(pc,type,idx);},Math.max(0,(t-c.currentTime)*1000)));}
   JAM.bar++;JAM.nextT+=barDur;}}
 function jamTap(){const now=performance.now();JAM.taps=JAM.taps.filter(x=>now-x<2500);JAM.taps.push(now);
@@ -1438,6 +1484,8 @@ function renderJam(it,rootPc){
  const rnOf=([off,t])=>{let r=ROMB[off];const f=CH[t].f;if(f.includes('b3')&&!f.includes('3'))r=r.replace(/[IV]+/,m=>m.toLowerCase());return r+(CH[t].rs||'');};
  prog.ch.forEach(x=>{const rName=spellIv(S.root,REL_LBL[x[0]]);chips.appendChild(el('span',{class:'jamchip'+(x[2]&&x[2].tied?' tied':''),'data-pop':rName+CH[x[1]].sym,'data-popctx':'any'},`<small>${x[2]&&x[2].tied?'⌒ hold':pretty(rnOf(x))}</small><b>${chName(x)}</b><em>${CH[x[1]].f.map(l=>pretty(spellIv(rName,l))).join(' ')}</em>`));});jam.appendChild(chips);
  jam.appendChild(el('div',{class:'jam-now',id:'jam-now'}));
+ {const lr=el('div',{class:'pr-row',style:'gap:8px;align-items:center;flex-wrap:wrap'});lr.appendChild(el('span',{class:'lbl'},'Lead over the jam '+tipBtn('lead')));
+  const seg=el('div',{class:'seg'});LEADS.forEach(([v,l])=>{const b=el('button',{'aria-pressed':String((S.jamLead||'off')===v)},l);b.onclick=()=>{S.jamLead=v;save();JAM.lp=null;$$('#ex-jam .seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));jfSync();};seg.appendChild(b);});lr.appendChild(seg);jam.appendChild(lr);}
  // style + time + feel + bars
  if(S.jamStyle==='shuffle'&&(S.jamTS==='3/4'||S.jamTS==='6/8'))S.jamStyle='pop';
  const dd=(label,tip,opts2,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label+' '+tipBtn(tip)));const x=el('select',{'aria-label':label});
@@ -2322,6 +2370,16 @@ $('#sg-up').onclick=()=>transpose(1);$('#sg-down').onclick=()=>transpose(-1);
 $('#sg-bpm').onchange=e=>{let v=+e.target.value;if(!(v>=40&&v<=220))v=90;S.bpm=v;save();};
 let sgSoftT=null;
 function stopPlay(){clearTimeout(playTimer);clearTimeout(sgSoftT);playTimer=null;setTimeout(()=>renderSongNeck(sgNeckIdx),0);$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';sgfSync();}
+function jfSync(){const b=$('#jf-play');if(!b)return;b.textContent=JAM.on?'■ Stop':'▶ Jam';$('#jf-bpm').textContent=S.jamBpm||90;const l=$('#jf-lead');if(l&&!l.options.length)LEADS.forEach(([v,t])=>l.appendChild(el('option',{value:v},v==='off'?'Lead: off':'Lead: '+t)));if(l)l.value=S.jamLead||'off';if(!JAM.on){const n=$('#jf-now');if(n)n.textContent='Jam';}}
+function jfCheck(){const f=$('#jam-float'),v=$('#v-explore');if(!f)return;let show=false;const g=$('#jam-go');
+ if(v&&!v.hidden&&g&&g.offsetParent!==null){const r=g.getBoundingClientRect();show=r.bottom<4||r.top>window.innerHeight-4;}
+ if(show){const bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?window.innerHeight-bn.getBoundingClientRect().top:0;f.style.bottom=(h+10)+'px';}
+ f.classList.toggle('on',show);f.setAttribute('aria-hidden',String(!show));}
+$('#jf-play').onclick=()=>$('#jam-go')&&$('#jam-go').click();
+$('#jf-lead').onchange=e=>{S.jamLead=e.target.value;save();JAM.lp=null;$$('#ex-jam .seg button').forEach((x,i)=>x.setAttribute('aria-pressed',String(LEADS[i]&&LEADS[i][0]===S.jamLead)));};
+const jfBpm=d=>{S.jamBpm=Math.max(50,Math.min(200,(S.jamBpm||90)+d));save();const r=$('#jam-bpm-r'),i=$('#jam-bpm');if(r)r.value=S.jamBpm;if(i)i.value=S.jamBpm;jfSync();};
+$('#jf-dn').onclick=()=>jfBpm(-5);$('#jf-up').onclick=()=>jfBpm(5);
+{let raf=0;const q=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;jfCheck();});};document.addEventListener('scroll',q,{capture:true,passive:true});window.addEventListener('resize',q);window.addEventListener('hashchange',q);setInterval(jfCheck,700);}
 function sgfSync(){const b=$('#sgf-play');if(b)b.textContent=playTimer?'■ Stop':'▶ Play';$('#sgf-bpm').textContent=S.bpm;if(!playTimer)sgfNow();}
 function sgfNow(c,n){const x=$('#sgf-now');if(!x)return;if(!c){const ch=curChords().filter(Boolean);x.innerHTML=ch.length?`${ch.length} chords`:'';return;}x.innerHTML=`${chordLabel(c)}${n&&n!==c?` <small>→ ${chordLabel(n)}</small>`:''}`;}
 function sgfPos(){const f=$('#sg-float'),bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?window.innerHeight-bn.getBoundingClientRect().top:0;f.style.bottom=(h+10)+'px';}
@@ -2965,6 +3023,7 @@ const TIPS={
  cagedsel:['CAGED','Pick one of the five shapes to see only the versions of this chord built from the open C, A, G, E or D chord shape. Moving through C → A → G → E → D takes you up the neck.'],
  triad:['Triads','The three notes of a chord (root, 3rd, 5th) played on three neighbouring strings. Small, light shapes that are easy to move around, great for rhythm parts and for learning the neck. Each string set has three versions: root position, 1st and 2nd inversion.'],
  wheel:['Key wheel','A simplified circle of fifths turned so that your song\'s key is at the top. The three lit majors (IV, I, V) and three minors (ii, vi, iii) are the chords that belong to the key: next to each other on the wheel means they sound good together. The cards below arrange the same chords by role: home chords rest, dominant chords pull back home.'],
+ lead:['Lead','A guitar plays over the band using the notes lit on the neck (the box, octave or run you picked). Scale run climbs and falls through the scale; Chord tones plays the notes of each chord; Improvise makes up a phrase every bar that lands on the chord; Call & answer plays one bar and leaves the next one for you.'],
  note:['Note','The root of the chord you want to see.']};
 function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
