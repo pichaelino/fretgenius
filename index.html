@@ -147,6 +147,13 @@ html.neck-pin #sg-neck.building{position:static!important;display:block!importan
 .pop{animation:fkpop .7s ease-out}@keyframes fkpop{0%{transform:scale(.985);box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}100%{transform:none;box-shadow:0 0 0 14px transparent}}
 .fk-why{font-size:14px;margin:8px 0 0}.fk-scale{margin:4px 0 0}
 .pc.new{border-color:var(--accent);animation:fkpop .9s ease-out}
+.xd-mark{display:inline-block;width:4px;align-self:stretch;min-height:44px;border-radius:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);margin:0 2px}
+#sg-prog.xd-target{outline:2px dashed color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:6px;border-radius:12px;transition:outline-color .15s}
+#sg-prog.xd-over{outline-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+#v-song [data-add]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#v-song [data-add].xd-armed{outline:2px solid var(--accent);transform:scale(1.05)}
+#v-song [data-add]{cursor:grab}
+.dd-hint{font-size:12.5px;color:var(--muted);margin:-4px 0 8px;font-weight:500}
 .zone-k{font:700 12.5px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 2px 10px;display:flex;align-items:center;gap:10px}
 .zone-k::after{content:'';flex:1;height:1px;background:var(--line)}
 .subnav{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px}
@@ -653,6 +660,10 @@ svg .mtog.muted text{fill:var(--bad)}
     </div>
     <div class="group"><span class="lbl" data-tipkey="variant">Variant</span><div class="dchords" id="kc-vars"></div></div>
     <div class="row" style="gap:18px"><span class="row" style="gap:4px"><label class="row" style="gap:6px;cursor:pointer;font-size:14px"><input type="checkbox" id="kc-inv"> Include inversions</label><span data-tipkey="inversion"></span></span><span class="row" style="gap:4px"><label class="row" style="gap:6px;cursor:pointer;font-size:14px"><input type="checkbox" id="kc-fing"> Show finger numbers</label><span data-tipkey="fingers"></span></span></div>
+    <div class="row" style="gap:18px;align-items:center">
+      <div class="group"><span class="lbl">Show</span><div class="seg" id="kc-mode"></div></div>
+      <div class="group" id="kc-caged-g"><span class="lbl">CAGED shape <button type="button" class="tip" data-tip="cagedsel" aria-label="What is this?">i</button></span><div class="seg" id="kc-caged"></div></div>
+    </div>
     <p class="ivhelp" id="kc-summary"></p>
   </div>
   <div id="kc-list" class="col"></div>
@@ -776,7 +787,8 @@ svg .mtog.muted text{fill:var(--bad)}
       <div class="legend"><span><i style="background:var(--ink)"></i>In key</span><span><i style="background:var(--borrow)"></i>Borrowed</span><span><i style="background:var(--sec)"></i>Secondary dominant</span><span><i style="background:var(--chrom)"></i>Outside the key</span></div>
       <div class="row">
         <span class="sgc-ctl"><label class="lbl" for="sg-time">Time <button type="button" class="tip" data-tip="time" aria-label="What is this?">i</button></label><select id="sg-time" aria-label="Time signature"><option value="4/4">4/4</option><option value="3/4">3/4</option><option value="6/8">6/8</option><option value="12/8">12/8</option><option value="2/4">2/4</option></select></span>
-        <span class="sgc-ctl"><label class="lbl" for="sg-style">Play as</label><select id="sg-style" aria-label="Playing style"><option value="strum">Strum</option><option value="boom">Bass + chord (staccato)</option><option value="arp">Arpeggio</option></select></span>
+        <span class="sgc-ctl"><label class="lbl" for="sg-style">Play as</label><select id="sg-style" aria-label="Playing style"><optgroup label="Strumming"><option value="strum">Strum</option><option value="boom">Bass + chord (staccato)</option></optgroup><optgroup label="Arpeggios"><option value="arp">Up &amp; down</option><option value="pima">p-i-m-a (classical)</option><option value="pami">p-a-m-i (descending)</option><option value="ballad">Ballad (p-i-m-i-a-i-m-i)</option></optgroup><optgroup label="Fingerstyle"><option value="travis">Travis picking</option><option value="pinch">Folk pinch</option><option value="waltz">Waltz (p · im · im)</option></optgroup></select><button type="button" class="tip" data-tip="pattern" aria-label="What is this?">i</button></span>
+        <label class="sgc-ctl" id="sg-legato-w" style="cursor:pointer"><input type="checkbox" id="sg-legato"> Legato (let ring) <button type="button" class="tip" data-tip="legato" aria-label="What is this?">i</button></label>
         <span class="sgc-ctl"><label class="lbl" for="sg-bpm">BPM</label><input type="number" id="sg-bpm" min="40" max="220" value="90" style="width:72px"></span>
         <button class="btn" id="sg-play">▶ Play progression</button>
       </div>
@@ -1087,9 +1099,9 @@ function diagramSVG0(v,tun,rootPc){
  const n=tun.length,fretted=v.frets.filter(x=>x>0),mx=fretted.length?Math.max(...fretted):0;
  const start=mx<=4?1:Math.min(...fretted);
  const sx=24,gw=n>1?84/(n-1):0,top=24,fh=20,rows=4;
- let s=`<svg viewBox="0 0 120 ${top+fh*rows+8}" aria-hidden="true">`;
+ let s=`<svg viewBox="-14 0 134 ${top+fh*rows+8}" aria-hidden="true">`;
  if(start===1)s+=`<rect class="vnut" x="${sx-1}" y="${top-3}" width="${84+2}" height="3"></rect>`;
- else s+=`<text class="vt vfr" x="${sx-9}" y="${top+fh/2+4}" text-anchor="end">${start}fr</text>`;
+ else s+=`<text class="vt vfr" x="${sx-10}" y="${top+fh/2+4}" text-anchor="end">${start}fr</text>`;
  for(let r=0;r<=rows;r++)s+=`<line class="vl" x1="${sx}" x2="${sx+84}" y1="${top+r*fh}" y2="${top+r*fh}" stroke-width="1"></line>`;
  const fr=[];v.frets.forEach((f,i)=>{if(f>0)fr.push({i,f});});const mnF=fr.length?Math.min(...fr.map(x=>x.f)):0,atMn=fr.filter(x=>x.f===mnF);
  const barre=atMn.length>=2&&fr.length>4,fing={};let nx=1;if(barre){atMn.forEach(x=>fing[x.i]=1);nx=2;}
@@ -1368,7 +1380,7 @@ function renderJam(it,rootPc){
  if(!S.jamBpm)S.jamBpm=90;if(!S.jamStyle)S.jamStyle='pop';if(!S.jamTS)S.jamTS='4/4';if(!S.jamFeel)S.jamFeel='straight';if(!S.jamBpc)S.jamBpc=1;
  const prog=opts[S.jamIdx];const chName=([off,t])=>pretty(spellIv(S.root,REL_LBL[off])+CH[t].sym);
  const key=[S.root,it.id,S.jamIdx,S.jamStyle,S.jamTS,S.jamFeel,S.jamBpc].join('|');
- const head=el('div',{class:'pr-row'});head.appendChild(el('h3',{},'Jam over it '+tipBtn('jam')));
+ const head=el('div',{class:'pr-row'});head.appendChild(el('h3',{},'Jam over it <span class="beta">BETA</span> '+tipBtn('jam')));
  const go=el('button',{class:'btn'+(JAM.on?' ghost':''),id:'jam-go'},JAM.on?'■ Stop jam':'▶ Start jam');go.onclick=()=>{if(JAM.on)jamStop();else jamStart(prog,rootPc,key);};
  head.append(go,el('span',{class:'jam-status',id:'jam-status'}));jam.appendChild(head);
  // progression
@@ -1764,8 +1776,8 @@ function renderCircle(){
  add('Scale',dia.map(d=>pretty(d.name.replace(/(m|dim)$/,''))).join(' '));
  if(i===6)add('Enharmonic',minor?'Same as E♭ minor (6 flats)':'Same as G♭ major (6 flats)');
  p.appendChild(dl);
- p.appendChild(el('h3',{},'Chords in this key · tap to add to your song'));
- const box=el('div',{class:'dchords'});dia.forEach(d=>box.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-popctx':'any',onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));p.appendChild(box);
+ p.appendChild(el('h3',{},'Chords in this key · tap or drag into your song'));
+ const box=el('div',{class:'dchords'});dia.forEach(d=>box.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-add':d.name,'data-popctx':'any',onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));p.appendChild(box);
  p.appendChild(helpBox('Tip',minor?'In minor keys the v chord is often played major (V) to create a stronger pull back to i, borrowed from harmonic minor.':'The I, IV and V chords are your three majors; ii, iii and vi are their minor partners on the inner ring.','circle-tip'));
  const row=el('div',{class:'row'});const tonic=minor?minName+'m':majName;
  row.appendChild(el('button',{class:'btn',onclick:()=>addChord(tonic)},`+ Add ${pretty(tonic)}`));
@@ -1953,17 +1965,17 @@ function renderSong(){
    body.appendChild(el('tr',{},`<td><b>${chordLabel(c)}</b>${c.guess?' <span class="mono" title="Unknown suffix, read as '+CH[c.type].name+'">?</span>':''}</td><td class="mono">${pretty(a.rn)}</td><td class="mono">${notes}</td><td>${a.note}</td>`));});
   tb.appendChild(body);tw.appendChild(tb);abox.appendChild(tw);
   // next
-  nbox.innerHTML='<h3>What could come next</h3>';
+  nbox.innerHTML='<h3>What could come next</h3><p class="dd-hint">Tap to add at the end, or drag into the progression.</p>';
   const nx=nextIdeas(valid[valid.length-1],key);const nd=el('div',{class:'tpls'});
-  nx.forEach(n=>nd.appendChild(el('button',{class:'tpl','data-pop':n.name,'data-popctx':'any',onclick:()=>addChord(n.name)},`<span><b>${pretty(n.name)}</b> <span class="mono" style="color:var(--muted)">${pretty(n.rn)}</span></span><small>${n.why}</small>`)));
+  nx.forEach(n=>nd.appendChild(el('button',{class:'tpl','data-pop':n.name,'data-add':n.name,'data-popctx':'any',onclick:()=>addChord(n.name)},`<span><b>${pretty(n.name)}</b> <span class="mono" style="color:var(--muted)">${pretty(n.rn)}</span></span><small>${n.why}</small>`)));
   nbox.appendChild(nd);
  }
  // palette
- pbox.innerHTML='';const ph=el('div',{class:'row',style:'justify-content:space-between'});ph.appendChild(el('h3',{},`Chords in ${pretty(key.name)} ${key.mode}`));
+ pbox.innerHTML='';const ph=el('div',{class:'row',style:'justify-content:space-between'});ph.appendChild(el('h3',{},`Chords in ${pretty(key.name)} ${key.mode} <span class="dd-hint" style="text-transform:none;letter-spacing:0">· tap or drag</span>`));
  const tg=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:13px'});const cb=el('input',{type:'checkbox'});cb.checked=S.sev;cb.onchange=()=>{S.sev=cb.checked;save();renderSong();};tg.append(cb,document.createTextNode('7ths'));ph.appendChild(tg);pbox.appendChild(ph);
- const dc=el('div',{class:'dchords'});diatonic(key,S.sev).forEach(d=>dc.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-popctx':'any',onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));pbox.appendChild(dc);
+ const dc=el('div',{class:'dchords'});diatonic(key,S.sev).forEach(d=>dc.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-add':d.name,'data-popctx':'any',onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));pbox.appendChild(dc);
  pbox.appendChild(el('h3',{},'Spice: borrowed and secondary'));
- const sp=el('div',{class:'dchords'});spice(key).forEach(d=>sp.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-popctx':'any','data-popnote':d.why,onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));pbox.appendChild(sp);
+ const sp=el('div',{class:'dchords'});spice(key).forEach(d=>sp.appendChild(el('button',{class:'dchord','data-pop':d.name,'data-add':d.name,'data-popctx':'any','data-popnote':d.why,onclick:()=>addChord(d.name)},`<b>${pretty(d.name)}</b><small>${pretty(d.rn)}</small>`)));pbox.appendChild(sp);
  pbox.appendChild(el('p',{class:'empty'},'Tap any chord to add it to the end of your song.'));
  // scales
  scb.innerHTML='<h3>Scales to solo with</h3>';const sl=el('div',{class:'tpls'});
@@ -1979,6 +1991,33 @@ function renderSong(){
  renderCircle();
 }
 const SGC={chords:[],key:null};
+function addChordAt(name,pos){const at=name.indexOf('@'),tok=nameIn(at>0?name.slice(0,at):name)+(at>0?name.slice(at):'');const{tk,vi}=songTok();
+ const j=pos>=vi.length?tk.length:vi[pos];tk.splice(j,0,tok);S.song=tk.join(' ');S.songIsSample=false;save();renderSong();const c=parseChord(tok);if(c)strum(songMidis(c));
+ if(typeof sgFlashChip==='function')sgFlashChip(Math.min(pos,vi.length));}
+// drag a chord from the palette, suggestions or circle into the progression
+let XD=null;
+document.addEventListener('pointerdown',e=>{if(e.button>0)return;const b=e.target.closest&&e.target.closest('#v-song [data-add]');if(!b)return;
+ XD={b,name:b.dataset.add,x0:e.clientX,y0:e.clientY,id:e.pointerId,started:false,touch:e.pointerType!=='mouse',t0:Date.now()};
+ if(XD.touch){XD.timer=setTimeout(()=>{if(XD&&!XD.started&&!XD.moved){XD.armed=true;b.classList.add('xd-armed');try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}}},280);}});
+function xdIndex(x,y){const chips=[...document.querySelectorAll('#sg-prog .pc')];if(!chips.length)return{pos:0,ref:null,after:false};
+ let best=null,bd=1e9,bi=0,after=false;chips.forEach((c,i)=>{const r=c.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(x-cx,(y-cy)*1.6);if(d<bd){bd=d;best=c;bi=i;after=x>cx;}});
+ return{pos:bi+(after?1:0),ref:best,after};}
+window.addEventListener('pointermove',e=>{const d=XD;if(!d||e.pointerId!==d.id)return;
+ if(!d.started){const mv=Math.hypot(e.clientX-d.x0,e.clientY-d.y0);if(mv<7)return;if(d.touch&&!d.armed){d.moved=true;clearTimeout(d.timer);XD=null;return;}
+  d.started=true;const r=d.b.getBoundingClientRect();d.ghost=d.b.cloneNode(true);d.ghost.classList.add('drag-ghost');Object.assign(d.ghost.style,{width:r.width+'px',height:r.height+'px'});document.body.appendChild(d.ghost);d.ox=d.x0-r.left;d.oy=d.y0-r.top;
+  d.mark=el('div',{class:'xd-mark'});document.body.classList.add('dragging');$('#sg-prog').classList.add('xd-target');}
+ e.preventDefault();d.ghost.style.transform=`translate(${e.clientX-d.ox}px,${e.clientY-d.oy}px)`;
+ const pr=$('#sg-prog').getBoundingClientRect(),inside=e.clientX>pr.left-30&&e.clientX<pr.right+30&&e.clientY>pr.top-40&&e.clientY<pr.bottom+40;d.inside=inside;
+ $('#sg-prog').classList.toggle('xd-over',inside);
+ if(inside){const ix=xdIndex(e.clientX,e.clientY);d.pos=ix.pos;if(ix.ref){ix.after?ix.ref.after(d.mark):ix.ref.before(d.mark);}else $('#sg-prog').appendChild(d.mark);}else d.mark.remove();
+ const vh=window.innerHeight;if(e.clientY<100)window.scrollBy(0,-14);else if(e.clientY>vh-110)window.scrollBy(0,14);},{passive:false});
+document.addEventListener('touchmove',e=>{if(XD&&(XD.armed||XD.started))e.preventDefault();},{passive:false});
+const xdEnd=e=>{const d=XD;if(!d||e.pointerId!==d.id)return;XD=null;clearTimeout(d.timer);d.b.classList.remove('xd-armed');if(!d.started)return;
+ d.ghost.remove();d.mark.remove();document.body.classList.remove('dragging');$('#sg-prog').classList.remove('xd-target','xd-over');
+ d.b.__xd=Date.now();if(d.inside&&e.type!=='pointercancel')addChordAt(d.name,d.pos==null?1e9:d.pos);};
+window.addEventListener('pointerup',xdEnd);window.addEventListener('pointercancel',xdEnd);
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#v-song [data-add]');if(b&&b.__xd&&Date.now()-b.__xd<400){e.stopPropagation();e.preventDefault();}},true);
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#v-song [data-add]'))e.preventDefault();});
 function addChord(name){const at=name.indexOf('@'),base=at>0?name.slice(0,at):name,suf=at>0?name.slice(at):'';const tok=nameIn(base)+suf;S.song=(S.song.trim()+' '+tok).trim();S.songIsSample=false;save();renderSong();const c=parseChord(tok);if(c)strum(songMidis(c));}
 function songTuning(){const t=tuning();return t.length>=6&&t.length<=7?t:TU.std.n;}
 const songShapeIdx=new Map(),songVCache=new Map();
@@ -2197,7 +2236,11 @@ function sgfCheck(){const f=$('#sg-float'),v=$('#v-song');if(!f)return;let show=
 let sgfRaf=0;const sgfQ=()=>{if(sgfRaf)return;sgfRaf=requestAnimationFrame(()=>{sgfRaf=0;sgfCheck();});};
 document.addEventListener('scroll',sgfQ,{capture:true,passive:true});window.addEventListener('scroll',sgfQ,{passive:true});window.addEventListener('resize',sgfQ);window.addEventListener('hashchange',sgfQ);setInterval(sgfCheck,700);
 window.addEventListener('resize',sgfPos);sgfSync();
-if(!['strum','boom','arp'].includes(S.sgStyle))S.sgStyle='strum';$('#sg-style').value=S.sgStyle;$('#sg-style').onchange=e=>{S.sgStyle=e.target.value;save();};
+const SG_STYLES=['strum','boom','arp','pima','pami','ballad','travis','pinch','waltz'],SG_PICKED=new Set(SG_STYLES.slice(2));
+if(!SG_STYLES.includes(S.sgStyle))S.sgStyle='strum';if(S.sgLegato==null)S.sgLegato=true;
+const sgLegatoVis=()=>{$('#sg-legato-w').hidden=!SG_PICKED.has(S.sgStyle);};
+$('#sg-style').value=S.sgStyle;$('#sg-style').onchange=e=>{S.sgStyle=e.target.value;save();sgLegatoVis();};
+$('#sg-legato').checked=!!S.sgLegato;$('#sg-legato').onchange=e=>{S.sgLegato=e.target.checked;save();};sgLegatoVis();
 if(!['4/4','3/4','6/8','12/8','2/4'].includes(S.sgTime))S.sgTime='4/4';$('#sg-time').value=S.sgTime;$('#sg-time').onchange=e=>{S.sgTime=e.target.value;save();};
 // time signatures: bar length in BPM pulses, pulse subdivision, and where the bass / chord hits fall
 const SGT={'4/4':{bar:4,sub:2,strum:[[0,'F'],[2,'U']],boom:[[0,'B'],[1,'S'],[2,'A'],[3,'S']]},
@@ -2208,7 +2251,18 @@ const SGT={'4/4':{bar:4,sub:2,strum:[[0,'F'],[2,'U']],boom:[[0,'B'],[1,'S'],[2,'
 function sgPattern(mm,beat){const st=S.sgStyle||'strum',T=SGT[S.sgTime]||SGT['4/4'],lo=[...mm].sort((a,b)=>a-b);
  const bass=lo[0],alt=lo.find(m=>m%12!==bass%12&&m>bass)??bass,upper=lo.slice(1).filter(m=>m>=lo[0]+5).slice(-4),stab=upper.length?upper:lo.slice(1);
  if(st==='boom')T.boom.forEach(([t,k])=>{const at=t*beat;if(k==='B')pluck(freq(bass),at,beat*.9,.26);else if(k==='A')pluck(freq(alt),at,beat*.9,.22);else strum(stab,at,.012,Math.min(beat*.32,beat/T.sub*.8),.13);});
- else if(st==='arp'){const seq=[...lo,...lo.slice(1,-1).reverse()];const n=T.bar*T.sub;for(let i=0;i<n;i++)pluck(freq(seq[i%seq.length]),i*beat/T.sub,beat*1.6,.17);}
+ else if(SG_PICKED.has(st)){const n=T.bar*T.sub,stp=beat/T.sub,leg=!!S.sgLegato;
+  const top=lo.length>=4?lo.slice(-3):lo.slice(1).concat(lo.slice(-1)).slice(-3);while(top.length<3)top.push(lo[lo.length-1]);
+  const F={p:bass,P:bass,A:alt,i:top[0],m:top[1],a:top[2]};
+  let seq;
+  if(st==='arp')seq=[...lo,...lo.slice(1,-1).reverse()].map(m=>[m]);
+  else{const PAT={pima:['p','i','m','a','m','i'],pami:['p','a','m','i'],ballad:['p','i','m','i','a','i','m','i'],
+    travis:T.sub===3?['pa','i','m','A','i','m']:['pa','m','A','i','p','m','A','i'],
+    pinch:T.sub===3?['pa','i','m','pa','i','m']:['pa','i','m','i'],
+    waltz:T.sub===3?['p','im','im','A','im','im']:(T.bar===3?['p','','im','','im','']:['p','','im','','A','','im',''])}[st];
+   seq=PAT.map(g=>[...g].map(ch=>F[ch]));}
+  for(let k=0;k<n;k++){const g=seq[k%seq.length];if(!g||!g.length)continue;const isB=g.includes(bass)||g.includes(alt);
+   g.forEach((m,j)=>pluck(freq(m),k*stp+j*.008,leg?beat*(m===bass||m===alt?3.2:2.6):stp*.85,(m===bass||m===alt)?.21:.16));}}
  else T.strum.forEach(([t,k])=>{const at=t*beat;if(k==='F')strum(mm,at,.028,beat*2.2,.15);else if(k==='U')strum([...mm].reverse().slice(0,4),at,.02,beat*2,.09);else strum([...mm].reverse().slice(0,3),at,.018,beat*1.2,.07);});
  return T.bar;}
 function sgScrollTo(t){if(!t)return;const hdr=(document.querySelector('header.top')?.offsetHeight||64);
@@ -2688,17 +2742,21 @@ function renderKeys(){
  chip('all','All',`${ids.length} variants`);
  ids.forEach(id=>chip(id,pretty(kc.root+CH[id].sym),allShapes(rootPc,id,tun,kc.inv).length+' shapes'));
  $('#kc-inv').checked=!!kc.inv;
+ const std=tun.join()===TU.std.n.join();
+ {const mb=$('#kc-mode');mb.innerHTML='';[['full','Full chords'],['triads','Triads']].forEach(([v,l])=>{const b=el('button',{'aria-pressed':String((kc.mode||'full')===v)},l);b.onclick=()=>{kc.mode=v;save();renderKeys();};mb.appendChild(b);});}
+ {const cb=$('#kc-caged');cb.innerHTML='';$('#kc-caged-g').hidden=!std||kc.mode==='triads';['all','C','A','G','E','D'].forEach(v=>{const b=el('button',{'aria-pressed':String((kc.caged||'all')===v),title:v==='all'?'Every shape':v+' shape'},v==='all'?'All':v);b.onclick=()=>{kc.caged=v;save();renderKeys();};cb.appendChild(b);});}
+ if(kc.mode==='triads'){renderKeyTriads(kc,rootPc,tun,ids);return;}
  const show=kc.v==='all'?ids:[kc.v];
- const total=show.reduce((a,id)=>a+allShapes(rootPc,id,tun,kc.inv).length,0);
+ const cgF=std&&kc.caged&&kc.caged!=='all'?kc.caged+' shape':'';const total=show.reduce((a,id)=>a+allShapes(rootPc,id,tun,kc.inv).filter(v=>!cgF||(v.bp===rootPc&&cagedOf(v.frets,tun,rootPc)===cgF)).length,0);
  const cagedNote=tun.join()===TU.std.n.join()?' '+tipBtn('caged'):'';
- $('#kc-summary').innerHTML=`<b>${total} shapes</b> for ${show.length>1?`${show.length} ${KC_FAM[kc.fam].name.toLowerCase()} variants of ${pretty(kc.root)}`:pretty(kc.root+CH[show[0]].sym)} in ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'standard tuning'}.${cagedNote}`;
+ $('#kc-summary').innerHTML=`<b>${total} shapes</b> for ${show.length>1?`${show.length} ${KC_FAM[kc.fam].name.toLowerCase()} variants of ${pretty(kc.root)}`:pretty(kc.root+CH[show[0]].sym)} in ${TU[S.tuning]&&tun===tuning()?TU[S.tuning].name:'standard tuning'}${cgF?` · only the <b>${cgF}</b>`:''}.${cagedNote}`;
  const list=$('#kc-list');list.innerHTML='';
  const GROUPS=[['Open position',v=>v.frets.includes(0)&&v.mn<=4],['Frets 1–4',v=>v.mn<=4],['Frets 5–8',v=>v.mn<=8],['Frets 9–12',v=>v.mn<=12],['Frets 13+',v=>true]];
  show.forEach(id=>{
-  const ch=CH[id],vs=allShapes(rootPc,id,tun,kc.inv);
+  const ch=CH[id],cg0=std&&kc.caged&&kc.caged!=='all'?kc.caged+' shape':'';const vs=allShapes(rootPc,id,tun,kc.inv).filter(v=>!cg0||(v.bp===rootPc&&cagedOf(v.frets,tun,rootPc)===cg0));
   const panel=el('div',{class:'panel kc-deg'});
   panel.appendChild(el('div',{class:'kc-head'},`<b>${pretty(kc.root+ch.sym)}</b><span class="fn"><b class="kc-full">${chordFullName(kc.root,id)}</b> · notes ${ch.f.map(l=>pretty(spellIv(kc.root,l))).join(' ')} · ${vs.length} shapes</span>`));
-  if(!vs.length){panel.appendChild(el('p',{class:'empty'},'No playable four-finger shapes in this tuning.'));list.appendChild(panel);return;}
+  if(!vs.length){panel.appendChild(el('p',{class:'empty'},cg0?`No ${cg0} for this chord within 15 frets. Try another CAGED shape.`:'No playable four-finger shapes in this tuning.'));list.appendChild(panel);return;}
   const buckets=GROUPS.map(()=>[]);vs.forEach(v=>{const gi=GROUPS.findIndex(([_,t])=>t(v));buckets[gi].push(v);});
   buckets.forEach((bk,gi)=>{if(!bk.length)return;const full=v=>v.ease+v.frets.filter(x=>x>=0).length*.75;bk.sort((a,b)=>full(b)-full(a));
    panel.appendChild(el('h3',{},`${GROUPS[gi][0]} · ${bk.length}`));
@@ -2716,6 +2774,40 @@ function renderKeys(){
  });
 }
 $('#kc-inv').onchange=e=>{S.kc.inv=e.target.checked;save();renderKeys();};
+// three-note shapes on neighbouring strings, every inversion, up to fret 15
+const TRI_OF={maj:'maj',six:'maj',add9:'maj',maj7:'maj',maj9:'maj',maj13:'maj',six9:'maj',dom7:'maj',nine:'maj',eleven:'maj',thirteen:'maj',sev_b9:'maj',sev_s9:'maj',
+ min:'min',m6:'min',madd9:'min',m7:'min',m9:'min',m11:'min',m13:'min',mmaj7:'min',dim:'dim',m7b5:'dim',dim7:'dim',sev_b5:'maj',aug:'aug',aug7:'aug',sus2:'sus2',sus4:'sus4',sev_sus4:'sus4',five:null};
+function triadShapes(rootPc,type,tun){const ch=CH[type];if(!ch)return[];const tones=ch.f.slice(0,3).map(l=>[(rootPc+IV[l])%12,l]);if(tones.length<3)return[];
+ const n=tun.length,out=[],seen=new Set();
+ const INV=[[0,1,2,'Root position'],[1,2,0,'1st inversion'],[2,0,1,'2nd inversion']];
+ for(let s0=0;s0+2<n;s0++){for(const [a,b,c,inv] of INV){
+  for(let f0=0;f0<=15;f0++){if((tun[s0]+f0)%12!==tones[a][0])continue;const p0=tun[s0]+f0;
+   let f1=-1;for(let f=0;f<=17;f++){const p=tun[s0+1]+f;if(p>p0&&p%12===tones[b][0]){f1=f;break;}}if(f1<0)continue;const p1=tun[s0+1]+f1;
+   let f2=-1;for(let f=0;f<=17;f++){const p=tun[s0+2]+f;if(p>p1&&p%12===tones[c][0]){f2=f;break;}}if(f2<0)continue;const p2=tun[s0+2]+f2;
+   if(p2-p0>=12)continue;const fr=[f0,f1,f2],fz=fr.filter(x=>x>0);if(fz.length&&Math.max(...fz)-Math.min(...fz)>4)continue;if(Math.max(...fr)>15)continue;
+   const frets=new Array(n).fill(-1);frets[s0]=f0;frets[s0+1]=f1;frets[s0+2]=f2;const k=frets.join();if(seen.has(k))continue;seen.add(k);
+   out.push({frets,mn:fz.length?Math.min(...fz):0,set:s0,inv,bass:tones[a][1]});}}}
+ return out;}
+function renderKeyTriads(kc,rootPc,tun,ids){
+ const tt=[...new Set((kc.v==='all'?ids:[kc.v]).map(id=>TRI_OF[id]).filter(Boolean))];
+ const list=$('#kc-list');list.innerHTML='';
+ const NM={maj:'major',min:'minor',dim:'diminished',aug:'augmented',sus2:'sus2',sus4:'sus4'};
+ let total=0;const n=tun.length;
+ if(!tt.length){$('#kc-summary').innerHTML='Power chords have no 3rd, so they have no triad.';return;}
+ tt.forEach(type=>{const ch=CH[type],vs=triadShapes(rootPc,type,tun);total+=vs.length;
+  const panel=el('div',{class:'panel kc-deg'});
+  panel.appendChild(el('div',{class:'kc-head'},`<b>${pretty(kc.root+ch.sym)}</b><span class="fn"><b class="kc-full">${pretty(kc.root)} ${NM[type]} triad</b> · notes ${ch.f.slice(0,3).map(l=>pretty(spellIv(kc.root,l))).join(' ')} · ${vs.length} shapes</span>`));
+  for(let s0=0;s0+2<n;s0++){const bk=vs.filter(v=>v.set===s0).sort((a,b)=>a.mn-b.mn);if(!bk.length)continue;
+   panel.appendChild(el('h3',{},`Strings ${n-s0}-${n-s0-1}-${n-s0-2} · ${pretty(AUTO[tun[s0]%12])} ${pretty(AUTO[tun[s0+1]%12])} ${pretty(AUTO[tun[s0+2]%12])} · ${bk.length}`));
+   const g=el('div',{class:'grid-v'});
+   bk.forEach(v=>{const ms=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);const lbl=m=>ch.f.find(l=>(rootPc+IV[l])%12===m%12)||'1';
+    const nm=v.bass==='1'?pretty(kc.root+ch.sym):pretty(kc.root+ch.sym)+'/'+pretty(spellIv(kc.root,v.bass));
+    const b=el('button',{class:'voicing',title:'Play '+nm},`<span class="vname">${nm}</span><span class="vfull">${v.inv}</span><span class="vpos">${v.mn?'Fret '+v.mn:'Open position'}</span>`+diagramSVG(v,tun,rootPc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small><span class="vnotes">${ms.map(m=>pretty(spellIv(kc.root,lbl(m)))).join(' ')}</span>`);
+    b.onclick=()=>strum(ms,0,.035);g.appendChild(b);});
+   panel.appendChild(g);}
+  list.appendChild(panel);});
+ $('#kc-summary').innerHTML=`<b>${total} triad shapes</b> for ${pretty(kc.root)} ${tt.map(t=>NM[t]).join(', ')} · three notes on neighbouring strings, every inversion, up to fret 15. ${tipBtn('triad')}`;
+}
 
 /* ---------- theme, wood ---------- */
 if(!S.theme)S.theme='dark';if(!S.wood)S.wood='rosewood';
@@ -2732,9 +2824,13 @@ const TYPE_FULL={maj:'major',min:'minor',dim:'diminished',aug:'augmented',sus2:'
 const INV_OF=l=>/^b?3$|^2$|^4$/.test(l)?'1st inversion':/5$/.test(l)?'2nd inversion':/7$/.test(l)?'3rd inversion':'extension in the bass';
 function chordFullName(rootName,type,bassLbl){let s=`${pretty(rootName)} ${TYPE_FULL[type]||CH[type].name.toLowerCase()}`;
  if(bassLbl&&bassLbl!=='1')s+=` · ${pretty(spellIv(rootName,bassLbl))} in the bass (${INV_OF(bassLbl)})`;return s;}
-function cagedOf(frets,tun,rootPc){if(tun.join()!==TU.std.n.join())return'';const R=new Set();frets.forEach((f,st)=>{if(f>=0&&(tun[st]+f)%12===rootPc)R.add(st);});
- const low=frets.findIndex(f=>f>=0);if(!R.has(low))return'';const T={E:[0,2,5],G:[0,3,5],A:[1,3],C:[1,4],D:[2,4]};let best='',bs=-9;
- let tie=false;for(const k in T){const t=T[k];if(t[0]!==low)continue;const hit=t.filter(x=>R.has(x)).length;if(hit<2)continue;const sc=hit-.5*t.filter(x=>!R.has(x)&&frets[x]>=0).length;if(sc>bs+1e-9){bs=sc;best=k;tie=false;}else if(Math.abs(sc-bs)<1e-9)tie=true;}return best&&!tie?best+' shape':'';}
+// CAGED by geometry: which string has the root in the bass, and whether the rest of the shape sits above or below that root fret
+function cagedOf(frets,tun,rootPc){if(tun.join()!==TU.std.n.join())return'';
+ const low=frets.findIndex(f=>f>=0);if(low<0||low>2||(tun[low]+frets[low])%12!==rootPc)return'';const r=frets[low];
+ let above=0,below=0;frets.forEach((f,st)=>{if(st<=low||f<0||(f===0&&r>0&&r>4))return;if(f>r)above++;else if(f<r)below++;});if(above&&above===below)return'';
+ if(low===0)return below>above?'G shape':'E shape';
+ if(low===1)return below>above?'C shape':'A shape';
+ return below>above?'':'D shape';}
 
 /* ---------- info tips ---------- */
 const TIPS={
@@ -2764,6 +2860,10 @@ const TIPS={
  fingers:['Finger numbers','1 = index, 2 = middle, 3 = ring, 4 = little finger. A bar across several strings is a barre: one finger, usually the index, presses them all at once.'],
  dir:['Direction','Low → high plays from the lowest pitch up, High → low from the highest down, Up & down goes up and comes back.'],
  frets:['Number of frets','How many frets your guitar has. A classic Fender Strat or Tele has 21 (the standard here), modern Fenders and most Gibsons 22, shred guitars like Ibanez and Jackson 24, acoustics about 20 and classical guitars 19.'],
+ pattern:['Playing pattern','How the backing guitar plays each chord. Strum hits all strings; Bass + chord is the "boom-chick" with short stabs. Arpeggios pick the notes one by one. In fingerstyle, p is the thumb (bass strings), i m a are index, middle and ring on the top three strings. Travis picking alternates the thumb between two bass notes while the fingers fill in between.'],
+ legato:['Legato','Let every note ring into the next one, like holding the chord shape down. Turn it off for short, detached notes.'],
+ cagedsel:['CAGED','Pick one of the five shapes to see only the versions of this chord built from the open C, A, G, E or D chord shape. Moving through C → A → G → E → D takes you up the neck.'],
+ triad:['Triads','The three notes of a chord (root, 3rd, 5th) played on three neighbouring strings. Small, light shapes that are easy to move around, great for rhythm parts and for learning the neck. Each string set has three versions: root position, 1st and 2nd inversion.'],
  note:['Note','The root of the chord you want to see.']};
 function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
