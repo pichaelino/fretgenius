@@ -397,6 +397,28 @@ svg .jam-ov .jov.r{stroke-width:4.5;filter:drop-shadow(0 0 5px var(--root))}
 svg .jam-ov .jov-x{fill:var(--bad,#e66);font:700 15px var(--f-body);pointer-events:none}
 svg .dot.lead{fill:var(--accent)!important;stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 7px var(--accent))}
 .jam-float #jf-lead{max-width:150px}
+.jam-float #jf-now:empty{display:none}
+.lk-list{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x proximity}
+.lk-card{flex:0 0 auto;scroll-snap-align:start;min-width:170px;max-width:220px;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.lk-card b{font-size:15px}.lk-card span{font:600 11.5px var(--f-mono);color:var(--accent)}.lk-card small{font-size:12px;color:var(--muted)}
+.lk-card:hover{border-color:var(--accent)}.lk-card.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+.lk-det{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.lk-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.lk-title b{font:800 26px/1.05 var(--f-display)}.lk-title span{color:var(--muted);font-size:14px}.lk-title em{font-style:normal;opacity:.8}
+.lk-learn{margin:0;max-width:75ch;font-size:15px}
+.lk-tag{font:600 11.5px var(--f-mono);padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.ltab-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:6px 4px}
+svg.ltab{display:block}
+.ltab .tl{stroke:var(--muted);stroke-width:1;opacity:.55}.ltab .tb{stroke:var(--muted);stroke-width:1.5}
+.ltab .tk{font:700 13px var(--f-mono);fill:var(--muted)}.ltab .tbeat{font:600 10.5px var(--f-mono);fill:var(--muted);text-anchor:middle;opacity:.7}
+.ltab .tn{cursor:pointer}.ltab .tn rect{fill:var(--bg)}.ltab .tn text{font:700 13.5px var(--f-mono);fill:var(--ink);text-anchor:middle}
+.ltab .tn.on rect{fill:var(--accent)}.ltab .tn.on text{fill:var(--on-accent)}
+.ltab .tarc,.ltab .tbend,.ltab .tvib{fill:none;stroke:var(--accent);stroke-width:1.6}.ltab .tsl{stroke:var(--accent);stroke-width:1.8}.ltab .tarr{fill:none;stroke:var(--accent);stroke-width:1.6}
+.ltab .tt{font:700 10.5px var(--f-mono);fill:var(--accent);text-anchor:middle}
+svg .lick-ov .lk circle{fill:color-mix(in srgb,var(--accent) 22%,transparent);stroke:var(--accent);stroke-width:2.5;pointer-events:none}
+svg .lick-ov .lk text{font:800 11px var(--f-mono);fill:#fff;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:2.5px}
+svg .lick-ov .lk-b{fill:none;stroke:var(--accent);stroke-width:2.2;pointer-events:none}
+svg .lick-ov .lk.on circle{fill:var(--accent);stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 8px var(--accent))}
+.lead-seg{flex-wrap:wrap}
 @media (max-width:520px){.sg-float.jam-float{flex-wrap:wrap;border-radius:22px;row-gap:8px}.jam-float .sgf-now{flex:1}.jam-float #jf-lead{flex:1;max-width:none;font-size:14px;order:3}.jam-float .sgf-bpm{order:4}}
 .jamchip.tied small{color:var(--accent)}
 .jam-now{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:22px;margin:4px 0 2px}.jam-now b{font:800 22px/1 var(--f-display)}.jam-now small{color:var(--muted)}
@@ -652,6 +674,7 @@ svg .mtog.muted text{fill:var(--bad)}
   <div class="board-wrap" id="ex-board"></div>
   <div class="ivlegend" id="ex-legend"></div>
   <div class="panel pr-jam" id="ex-jam"></div>
+  <div class="panel" id="ex-licks"></div>
   <div class="panel" id="ex-extra"></div>
 </section>
 
@@ -682,7 +705,7 @@ svg .mtog.muted text{fill:var(--bad)}
 </section>
 
 <!-- CHORD SHAPES -->
-<div class="sg-float jam-float" id="jam-float" aria-hidden="true"><button class="btn" id="jf-play">▶ Jam</button><span class="sgf-now" id="jf-now">Jam</span><select id="jf-lead" aria-label="Lead over the jam"></select><span class="sgf-bpm"><button class="btn ghost sm" id="jf-dn" aria-label="Slower">−</button><b id="jf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="jf-up" aria-label="Faster">+</button></span></div>
+<div class="sg-float jam-float" id="jam-float" aria-hidden="true"><button class="btn" id="jf-play">▶ Jam</button><span class="sgf-now" id="jf-now"></span><select id="jf-lead" aria-label="Lead over the jam"></select><span class="sgf-bpm"><button class="btn ghost sm" id="jf-dn" aria-label="Slower">−</button><b id="jf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="jf-up" aria-label="Faster">+</button></span></div>
 <section class="view" id="v-keys" hidden>
   <div class="head">
     <h1 class="vt">Chord shapes</h1>
@@ -1402,14 +1425,25 @@ function jamMark(pc,type,idx){const svg=$('#ex-board svg');const ex=JAM.prog.ch[
  const now=$('#jam-now');if(now)now.innerHTML=`<span class="lbl">Now</span><b>${nm(ch[idx])}</b><span class="lbl">next</span><span>${nm(nx)}</span><small>· the shape is ringed on the neck</small>`;
  const fn=$('#jf-now');if(fn)fn.innerHTML=`${nm(ch[idx])} <small>→ ${nm(nx)}</small>`;}
 // ---- lead: something plays over the band, on the notes shown on the neck ----
-const LEADS=[['off','Off'],['scale','Scale run'],['tones','Chord tones'],['improv','Improvise'],['call','Call & answer']];
+const LEADS=[['off','Off'],['scale','Scale run'],['tones','Chord tones'],['improv','Improvise'],['call','Call & answer'],['licks','Licks (you answer)']];
 function jamPool(){const dots=[...$$('#ex-board .dot[data-k]')].filter(d=>!d.closest('g.dim'));if(!dots.length)return[];
  let pts=dots.map(d=>{const[st,f]=d.dataset.k.split(',').map(Number);return{st,f,m:+d.dataset.m};});
  const uniq=new Set(pts.map(p=>p.m));
  if(uniq.size>16){const tun=tuning(),r=pcOf(S.root);let w0=0;for(let f=0;f<12;f++)if((tun[0]+f)%12===r){w0=f;break;}if(w0<2)w0+=0;pts=pts.filter(p=>p.f>=Math.max(0,w0-1)&&p.f<=w0+4);}
  const by=new Map();pts.forEach(p=>{const o=by.get(p.m);if(!o||Math.abs(p.f-5)<Math.abs(o.f-5))by.set(p.m,p);});
  return[...by.values()].sort((a,b)=>a.m-b.m);}
-function jamLeadBar(t,n,sd,pc,type){const mode=S.jamLead||'off';if(mode==='off')return;const pool=jamPool();if(pool.length<3)return;const c=ac();
+function jamLickBar(t,n,sd,pc){if(JAM.lickBusy>0){JAM.lickBusy--;return;}const ts=S.jamTS||'4/4';if(ts.endsWith('/8'))return;
+ const it=exItem(),minorCtx=it.f.includes('b3')&&!it.f.includes('3'),rel=(pc-pcOf(S.root)+12)%12;
+ const want=rel===0?['I','any']:rel===5?['IV','any']:rel===7?['V','turn','any']:['any'];
+ let pool=LICKS.filter(l=>(l.q==='any'||l.q===(minorCtx?'minor':'major'))&&want.includes(l.ctx));if(!pool.length)pool=LICKS.filter(l=>l.q===(minorCtx?'minor':'major'));
+ let lk=S.lickPin&&LICKS.find(l=>l.id===S.lickPin);if(!lk){lk=pool.filter(l=>l.id!==JAM.lastLick)[Math.floor(Math.random()*Math.max(1,pool.length-1))]||pool[0];}
+ JAM.lastLick=lk.id;const kk=lickKey(lk),L=lickLayout(lk,kk.pc);L.sig=lk.id+'|'+kk.pc+'|'+tuning().join();const u=sd/2,c=ac();
+ const shown=S.lickSel===lk.id;
+ JAM.beatTimers.push(...lickSchedule(L,t,u,JAM.bus,i=>{if(!JAM.on)return;lickOverlay(L,i);if(shown){$$('.ltab .tn.on').forEach(x=>x.classList.remove('on'));const tn=document.querySelector(`.ltab .tn[data-i="${i}"]`);if(tn)tn.classList.add('on');}}));
+ JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;const st=$('#jam-lick');if(st)st.innerHTML=`Lick: <b>${lk.name}</b> · now you answer`;},Math.max(0,(t-c.currentTime)*1000)));
+ const bars=Math.max(1,Math.ceil(L.len/(n*2)));JAM.lickBusy=bars*2-1;
+ JAM.beatTimers.push(setTimeout(()=>{if(JAM.on&&!S.lickShow)lickOverlay(null);else if(JAM.on&&LK.Lsel)lickOverlay(LK.Lsel,null);},Math.max(0,(t+L.len*u+.4-c.currentTime)*1000)));}
+function jamLeadBar(t,n,sd,pc,type){const mode=S.jamLead||'off';if(mode==='off')return;if(mode==='licks'){jamLickBar(t,n,sd,pc);return;}const pool=jamPool();if(pool.length<3)return;const c=ac();
  const ivs=new Set(CH[type].f.map(l=>IV[l]%12)),isCT=p=>ivs.has((p.m-pc+120)%12);const ct=pool.filter(isCT);
  if(JAM.lp==null||JAM.lp>=pool.length){JAM.lp=0;JAM.ld=1;}
  const near=(i,want)=>{let best=i,bd=99;pool.forEach((p,k)=>{if(want(p)&&Math.abs(k-i)<bd){bd=Math.abs(k-i);best=k;}});return best;};
@@ -1429,7 +1463,7 @@ function jamLeadBar(t,n,sd,pc,type){const mode=S.jamLead||'off';if(mode==='off')
  notes.forEach(([k,ix,len])=>{const p=pool[ix];if(!p)return;let at=t+k*sd;if((S.jamFeel==='swing'||S.jamStyle==='shuffle')&&!(n%3===0)&&k%2===1)at+=sd/3;
   pluck(freq(p.m),at-c.currentTime,sd*len*1.05+.05,.24,{dest:JAM.bus});
   JAM.beatTimers.push(setTimeout(()=>{if(!JAM.on)return;$$('#ex-board .dot.lead').forEach(d=>d.classList.remove('lead'));const d=document.querySelector(`#ex-board .dot[data-k="${p.st},${p.f}"]`);if(d){d.classList.add('lead');followDot(d);}},Math.max(0,(at-c.currentTime)*1000)));});}
-function jamStop(){JAM.on=false;JAM.lp=null;JAM.lt=null;$$('#ex-board .jam-ov').forEach(g=>g.remove());$$('#ex-board .dot.lead').forEach(d=>d.classList.remove('lead'));jfSync();const jn=$('#jam-now');if(jn)jn.innerHTML='';clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
+function jamStop(){JAM.on=false;JAM.lp=null;JAM.lt=null;JAM.lickBusy=0;{const jl=$('#jam-lick');if(jl)jl.innerHTML='';}$$('#ex-board .jam-ov').forEach(g=>g.remove());$$('#ex-board .dot.lead').forEach(d=>d.classList.remove('lead'));jfSync();const jn=$('#jam-now');if(jn)jn.innerHTML='';clearInterval(JAM.timer);JAM.beatTimers.forEach(clearTimeout);JAM.beatTimers=[];if(JAM.bus){try{JAM.bus.disconnect();}catch(e){}JAM.bus=null;}
  $$('.jamchip.on,.jbeat.on').forEach(x=>x.classList.remove('on'));const b=$('#jam-go');if(b){b.textContent='▶ Start jam';b.classList.remove('ghost');}const s=$('#jam-status');if(s)s.textContent='';}
 function jamStart(prog,rootPc,key){jamStop();const c=ac();JAM.bus=c.createGain();JAM.bus.gain.value=.75;JAM.bus.connect(master);
  Object.assign(JAM,{on:true,prog,root:rootPc,key,bar:S.jamCount?-1:0,nextT:c.currentTime+.12});JAM.timer=setInterval(jamTick,30);jamTick();
@@ -1485,7 +1519,10 @@ function renderJam(it,rootPc){
  prog.ch.forEach(x=>{const rName=spellIv(S.root,REL_LBL[x[0]]);chips.appendChild(el('span',{class:'jamchip'+(x[2]&&x[2].tied?' tied':''),'data-pop':rName+CH[x[1]].sym,'data-popctx':'any'},`<small>${x[2]&&x[2].tied?'⌒ hold':pretty(rnOf(x))}</small><b>${chName(x)}</b><em>${CH[x[1]].f.map(l=>pretty(spellIv(rName,l))).join(' ')}</em>`));});jam.appendChild(chips);
  jam.appendChild(el('div',{class:'jam-now',id:'jam-now'}));
  {const lr=el('div',{class:'pr-row',style:'gap:8px;align-items:center;flex-wrap:wrap'});lr.appendChild(el('span',{class:'lbl'},'Lead over the jam '+tipBtn('lead')));
-  const seg=el('div',{class:'seg'});LEADS.forEach(([v,l])=>{const b=el('button',{'aria-pressed':String((S.jamLead||'off')===v)},l);b.onclick=()=>{S.jamLead=v;save();JAM.lp=null;$$('#ex-jam .seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));jfSync();};seg.appendChild(b);});lr.appendChild(seg);jam.appendChild(lr);}
+  const seg=el('div',{class:'seg lead-seg'});LEADS.forEach(([v,l])=>{const b=el('button',{'aria-pressed':String((S.jamLead||'off')===v)},l);b.onclick=()=>{S.jamLead=v;if(v!=='licks')S.lickPin=null;save();JAM.lp=null;JAM.lickBusy=0;renderJam(exItem(),pcOf(S.root));jfSync();};seg.appendChild(b);});lr.appendChild(seg);jam.appendChild(lr);
+  if(S.jamLead==='licks'){const pin=S.lickPin&&LICKS.find(l=>l.id===S.lickPin);const pr=el('p',{class:'dd-hint',style:'margin:0'},pin?`Trading <b>${pin.name}</b>: the band plays it, then leaves a bar for you to copy it. `:'Random licks that fit each chord, then a free bar for your answer. Pick one in the Licks panel below to practise just that one. ');
+   if(pin)pr.appendChild(el('button',{class:'btn ghost sm',onclick:()=>{S.lickPin=null;save();renderJam(exItem(),pcOf(S.root));}},'Random licks instead'));jam.appendChild(pr);}
+  jam.appendChild(el('div',{class:'jam-now',id:'jam-lick'}));}
  // style + time + feel + bars
  if(S.jamStyle==='shuffle'&&(S.jamTS==='3/4'||S.jamTS==='6/8'))S.jamStyle='pop';
  const dd=(label,tip,opts2,cur,set)=>{const g=el('div',{class:'group'});g.appendChild(el('span',{class:'lbl'},label+' '+tipBtn(tip)));const x=el('select',{'aria-label':label});
@@ -1601,7 +1638,147 @@ function renderPractice(c){
   txt=`<b>${nmM(m)}</b> (${freq(m).toFixed(1)} Hz) is ringed in ${pl.length} place${pl.length>1?'s':''}: ${pl.join(', ')}. Same pitch, different string. Tap it again to clear.`;}
  info.innerHTML='';if(S.selMidi!=null)info.innerHTML=txt;else{if(short)info.appendChild(el('p',{class:'pr-short'},short));if(txt)info.appendChild(helpBox('How to practise',txt,'practice-'+S.pmode));}
  renderJam(it,rootPc);
+ renderLicks();
 }
+
+/* ---------- licks ----------
+ Original phrases in classic styles (not transcriptions of recordings).
+ Each note: "string:fret:length[:technique]"
+   string   1 = high e … 6 = low E
+   fret     offset from R, the fret of the key's root on the low E string (A → 5)
+   length   in 16th notes (4 = one beat); 0 only with "+"
+   technique b1 b2 b3 bend ½ / whole / 1½ step · br2 bend and release · r2 pre-bent, release
+             h hammer-on · p pull-off · / slide up into it · \ slide down into it · ~ vibrato
+             + played together with the previous note (double-stop), length 0
+ q: minor | major | any   ctx: I | IV | V | turn | any (which chord it is made for)            */
+const LICKS=[
+ {id:'opener',name:'Box 1 opener',q:'minor',lvl:1,ctx:'I',bars:1,style:'Blues',learn:'Walks down Box 1 two notes per string, bends the 3rd string up to the 5th and lands on the root with vibrato. The first lick to learn.',
+  n:'1:3:2 1:0:2 2:3:2 2:0:2 3:2:2:b2 3:0:2 4:2:4:~'},
+ {id:'bendrel',name:'Bend, release, resolve',q:'minor',lvl:1,ctx:'any',bars:1,style:'Blues rock',learn:'A whole-step bend on the 3rd string, let back down in time, then home to the root. Listen that the bend reaches the pitch of the next fret pair.',
+  n:'3:2:4:b2 3:2:2:r2 3:0:2 4:2:8:~'},
+ {id:'climb',name:'Box 1 climb',q:'minor',lvl:1,ctx:'IV',bars:1,style:'Rock',learn:'Straight eighths up Box 1 from the low root. Alternate picking, one note per beat-half. Ends on the 4th, which sits nicely on the IV chord.',
+  n:'6:0:2 6:3:2 5:0:2 5:2:2 4:0:2 4:2:2 3:0:2 3:2:2:~'},
+ {id:'bluenote',name:'Blue-note grind',q:'minor',lvl:1,ctx:'IV',bars:1,style:'Blues',learn:'Hammer onto the ♭5 "blue note" and pull back off it. The ♭5 is a passing note: never stop on it.',
+  n:'4:0:2 4:2:2 3:0:2 3:2:2 3:3:2:h 3:2:2:p 3:0:2 4:2:2:~'},
+ {id:'unison',name:'Unison bend',q:'minor',lvl:2,ctx:'I',bars:1,style:'Rock',learn:'Bend the 3rd string up to the same pitch as the note held on the 2nd string. The two notes "beat" against each other until they match.',
+  n:'3:2:6:b2 2:0:0:+ 3:2:2:r2 3:0:2 4:2:6:~'},
+ {id:'upper',name:'Upper blues box',q:'minor',lvl:2,ctx:'IV',bars:1,style:'Blues',learn:'The small box five frets above Box 1, on the top two strings. Bend the 1st string a whole step and finish with a wide vibrato on the root.',
+  n:'1:3:2 1:5:4:b2 1:3:2 2:5:4:~ 2:3:2 2:5:2'},
+ {id:'box2',name:'Slide up to Box 2',q:'minor',lvl:2,ctx:'any',bars:1,style:'Rock',learn:'Two slides connect Box 1 to Box 2, so your hand ends higher up the neck. Keep the finger pressed while it slides.',
+  n:'4:0:2 4:2:2 4:5:2:/ 3:2:2 3:4:2 3:7:2:/ 2:5:4:~'},
+ {id:'sixes',name:'Six-note repeat',q:'minor',lvl:3,ctx:'any',bars:2,style:'Rock',learn:'A three-note group (pull-off and string change) repeated in fast 16ths. Groups of three against a beat of four make it roll. Start at 50% speed.',
+  n:'1:3:1 1:0:1:p 2:3:1 1:3:1 1:0:1:p 2:3:1 1:3:1 1:0:1:p 2:3:1 1:3:1 1:0:1:p 2:3:1 2:3:1 2:0:1:p 3:2:1 3:0:1 3:2:2:b2 3:2:2:r2 3:0:2 4:2:10:~'},
+ {id:'slowcry',name:'Slow-blues cry',q:'minor',lvl:3,ctx:'I',bars:2,style:'Slow blues',learn:'Long notes, two bends and space. Bend the ♭7 up to the root, then nudge the ♭3 a half step toward the major 3rd: the classic blues tension.',
+  n:'2:3:4:b2 2:3:4:r2 2:0:4 3:2:4:~ 3:0:4:b1 3:0:4:r1 4:2:8:~'},
+ {id:'turn',name:'Classic turnaround',q:'any',lvl:2,ctx:'turn',bars:1,style:'Blues',learn:'The high root rings while a line walks down a half step at a time to the 5th. Played in the last bar of a blues to "turn" back to the top.',
+  n:'1:0:2 4:0:0:+ 1:0:2 4:-1:0:+ 1:0:2 4:-2:0:+ 1:0:2 4:-3:0:+ 5:2:8:~'},
+ {id:'dstops',name:'Rock ’n’ roll double-stops',q:'major',lvl:1,ctx:'I',bars:1,style:'Rock ’n’ roll',learn:'Two strings struck together in steady eighths, then a 6th shape that slides down. Mute the other strings with your picking hand.',
+  n:'2:0:2:/ 1:0:0:+ 2:0:2 1:0:0:+ 2:0:2 1:0:0:+ 2:0:2 1:0:0:+ 3:1:2:/ 2:2:0:+ 3:1:2 2:2:0:+ 3:-1:4:\\ 2:0:0:+'},
+ {id:'majrun',name:'Major pentatonic run',q:'major',lvl:2,ctx:'I',bars:1,style:'Country',learn:'A fast run down the major pentatonic, then a bend from the 2nd to the major 3rd. Sweet and bright, no minor notes at all.',
+  n:'1:2:1 1:0:1 2:2:1 2:0:1 3:1:1 3:-1:1 4:2:1 4:-1:1 3:-1:4:b2 4:2:4:~'},
+ {id:'b3to3',name:'Minor-to-major hammer',q:'major',lvl:1,ctx:'I',bars:1,style:'Country blues',learn:'Hammer from the ♭3 to the major 3rd: the sound of blues mixed with country. The hammer-on must be strong enough to sound without picking.',
+  n:'5:-2:2 5:-1:2:h 5:2:2 4:-1:2 4:2:2 3:-1:2 3:1:2:h 2:0:2:~'},
+ {id:'steel',name:'Pedal-steel bend',q:'major',lvl:3,ctx:'I',bars:1,style:'Country',learn:'Bend the 3rd string while the 2nd string keeps ringing above it, like a pedal-steel guitar. Only the bent string moves.',
+  n:'3:-1:4:b2 2:0:0:+ 3:-1:4:r2 2:0:0:+ 3:-1:2 4:2:6:~'},
+ {id:'mixo',name:'Mixolydian ♭7 lick',q:'major',lvl:2,ctx:'IV',bars:1,style:'Blues rock',learn:'A major-pentatonic line with the ♭7 added (Mixolydian). It fits dominant 7 chords and every chord of a 12-bar blues.',
+  n:'2:3:2 2:2:2 2:0:2 3:1:2 3:-1:2 4:2:2 4:0:2 4:2:2:~'}
+];
+const LICK_STD=[40,45,50,55,59,64];
+function lickParse(src){return src.trim().split(/\s+/).map(tk=>{const[s,f,d,te='']=tk.split(':');const t={str:+s,off:+f,len:+d,tech:te};
+ const b=te.match(/^b(r)?(\d)/);if(b){t.bend=+b[2];if(b[1])t.rel=true;}const r=te.match(/^r(\d)/);if(r)t.pre=+r[1];
+ t.h=te.includes('h');t.p=te.includes('p');t.su=te.includes('/');t.sd=te.includes('\\');t.vib=te.includes('~');t.with=te.includes('+');return t;});}
+// where this lick sits for a key (rootPc) and how it maps onto the current tuning
+function lickLayout(lk,rootPc){const ns=lickParse(lk.n);const offs=ns.map(x=>x.off);let R=(rootPc-4+12)%12;
+ if(R<2||R+Math.min(...offs)<0)R+=12;if(R+Math.max(...offs)>EXF&&R>=12)R-=12;
+ const tun=tuning().length===6?tuning():LICK_STD;let t=0,last=0,shift=0;
+ const ev=ns.map(x=>{const st=6-x.str,midi=LICK_STD[st]+R+x.off,f=midi-tun[st];const e={...x,st,midi,f,t:x.with?last:t};if(!x.with){last=t;t+=x.len;}return e;});
+ const minF=Math.min(...ev.map(e=>e.f));if(minF<0)shift=12;ev.forEach(e=>{e.f+=shift;e.midi+=shift;});
+ return{ev,len:t,R:R+shift};}
+function lickKey(lk){const it=curItem(),minorCtx=it.f.includes('b3')&&!it.f.includes('3');const r=pcOf(S.root);
+ if(lk.q==='minor'&&!minorCtx)return{pc:(r+9)%12,name:spellIv(S.root,'6'),mode:'minor',rel:true};
+ if(lk.q==='major'&&minorCtx)return{pc:(r+3)%12,name:spellIv(S.root,'b3'),mode:'major',rel:true};
+ return{pc:r,name:S.root,mode:minorCtx?'minor':'major',rel:false};}
+const curItem=()=>exItem();
+/* ----- tab ----- */
+function lickTabSVG(L){const U=24,LM=34,TOP=26,GAP=15,n=6,W=LM+L.len*U+18,H=TOP+GAP*5+40;let s=`<svg class="ltab" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Tab">`;
+ for(let i=0;i<n;i++)s+=`<line class="tl" x1="${LM-8}" x2="${W-8}" y1="${TOP+i*GAP}" y2="${TOP+i*GAP}"></line>`;
+ s+=`<text class="tk" x="8" y="${TOP+GAP*1.2}">T</text><text class="tk" x="8" y="${TOP+GAP*2.5}">A</text><text class="tk" x="8" y="${TOP+GAP*3.8}">B</text>`;
+ for(let b=0;b<=L.len;b+=16)s+=`<line class="tb" x1="${LM+b*U-4}" x2="${LM+b*U-4}" y1="${TOP}" y2="${TOP+GAP*5}"></line>`;
+ for(let q=0;q<L.len;q+=4)s+=`<text class="tbeat" x="${LM+q*U+8}" y="${TOP+GAP*5+18}">${(q%16)/4+1}</text>`;
+ const X=e=>LM+e.t*U+8,Y=e=>TOP+(e.str-1)*GAP;
+ L.ev.forEach((e,i)=>{const x=X(e),y=Y(e),lab=String(e.f);const prev=L.ev.slice(0,i).reverse().find(p=>p.str===e.str);
+  if((e.h||e.p)&&prev){const x0=X(prev);s+=`<path class="tarc" d="M${x0+2} ${y-8} Q${(x0+x)/2} ${y-20} ${x-2} ${y-8}"></path><text class="tt" x="${(x0+x)/2}" y="${y-18}">${e.h?'h':'p'}</text>`;}
+  if((e.su||e.sd)){const x0=prev&&prev.str===e.str?X(prev)+9:x-16;const up=e.su;s+=`<line class="tsl" x1="${x0}" y1="${y+(up?4:-4)}" x2="${x-9}" y2="${y+(up?-4:4)}"></line>`;}
+  if(e.bend||e.pre){const k=e.bend||e.pre,lbl=k===1?'½':k===2?'full':'1½';
+   if(e.bend)s+=`<path class="tbend" d="M${x+8} ${y} Q${x+20} ${y-2} ${x+20} ${TOP-12}"></path><path class="tarr" d="M${x+16} ${TOP-8} L${x+20} ${TOP-14} L${x+24} ${TOP-8}"></path><text class="tt" x="${x+20}" y="${TOP-17}">${lbl}</text>`;
+   if(e.rel||e.pre)s+=`<path class="tbend" d="M${x+(e.pre?2:24)} ${TOP-12} Q${x+(e.pre?18:36)} ${TOP-10} ${x+(e.pre?18:36)} ${y-6}"></path><text class="tt" x="${x+(e.pre?20:38)}" y="${TOP-17}">${e.pre?'pre ':''}${e.pre?lbl:''}${e.rel||e.pre?' r':''}</text>`;}
+  if(e.vib)s+=`<path class="tvib" d="M${x-6} ${TOP-6} q3 -4 6 0 t6 0 t6 0 t6 0"></path>`;
+  s+=`<g class="tn" data-i="${i}"><rect x="${x-(lab.length>1?9:6)}" y="${y-8}" width="${lab.length>1?18:12}" height="16" rx="3"></rect><text x="${x}" y="${y+4.5}">${lab}</text></g>`;});
+ return s+'</svg>';}
+/* ----- neck overlay ----- */
+function lickOverlay(L,activeI){const svg=$('#ex-board svg');if(!svg)return;const host=svg.querySelector(':scope>g[transform]')||svg;let g=host.querySelector('.lick-ov');
+ if(!L){if(g)g.remove();return;}
+ if(!g||g.dataset.sig!==L.sig){if(g)g.remove();g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('class','lick-ov');g.dataset.sig=L.sig;
+  const n=tuning().length,seen=new Map();let h='';
+  L.ev.forEach((e,i)=>{const k=e.st+','+e.f;if(seen.has(k))return;seen.set(k,seen.size+1);const[x,y]=neckXY(e.st,e.f,n);
+   h+=`<g class="lk" data-k="${k}"><circle cx="${x}" cy="${y}" r="13"></circle>`+(e.bend||e.pre?`<path class="lk-b" d="M${x-5} ${y-17} L${x} ${y-24} L${x+5} ${y-17}"></path>`:'')+`<text x="${x}" y="${y+4}"${S.lefty?` transform="translate(${2*x} 0) scale(-1 1)"`:''}>${seen.get(k)}</text></g>`;});
+  g.innerHTML=h;host.appendChild(g);}
+ g.querySelectorAll('.lk.on').forEach(x=>x.classList.remove('on'));
+ if(activeI!=null){const e=L.ev[activeI];if(e){const x=g.querySelector(`.lk[data-k="${e.st},${e.f}"]`);if(x){x.classList.add('on');followDot(x);}}
+  L.ev.forEach((o,j)=>{if(o.with&&j===activeI+1){const y=g.querySelector(`.lk[data-k="${o.st},${o.f}"]`);if(y)y.classList.add('on');}});}}
+/* ----- sound ----- */
+function lickSchedule(L,t0,u,dest,onNote){const c=ac();const prevOn={};const ids=[];
+ L.ev.forEach((e,i)=>{const t=t0+e.t*u,dur=Math.max(u*.9,e.len*u*1.02)+(e.vib?.15:0);const f=freq(e.midi),o={dest};
+  const pv=prevOn[e.st];if(e.su||e.sd){if(pv!=null&&pv!==e.midi)o.from=freq(pv);else o.from=freq(e.midi+(e.su?-2:2));}
+  if(e.h||e.p)o.legato=true;if(e.vib)o.vib=true;
+  if(e.bend){o.bend=freq(e.midi+e.bend);if(e.rel)o.release=f;}
+  if(e.pre){ksPlay(freq(e.midi+e.pre),t,dur,.2,{dest,bend:f});}
+  else ksPlay(f,t,dur,e.with?.17:.21,o);
+  prevOn[e.st]=e.bend&&!e.rel?e.midi+e.bend:e.midi;
+  if(onNote)ids.push(setTimeout(()=>onNote(i),Math.max(0,(t-c.currentTime)*1000)));});
+ return ids;}
+const LK={timers:[],on:false,loopT:null};
+function lickStop(){LK.on=false;LK.timers.forEach(clearTimeout);LK.timers=[];clearTimeout(LK.loopT);$$('.ltab .tn.on').forEach(x=>x.classList.remove('on'));const b=$('#lk-play');if(b)b.textContent='▶ Play lick';lickOverlay(LK.L||null,null);}
+function lickPlay(lk){lickStop();const c=ac();const kk=lickKey(lk);const L=lickLayout(lk,kk.pc);L.sig=lk.id+'|'+kk.pc+'|'+tuning().join();LK.L=L;LK.on=true;
+ const sp=S.lickSpeed||1,bpm=(S.jamBpm||90)*sp,u=60/bpm/4;const b=$('#lk-play');if(b)b.textContent='■ Stop';
+ const go=()=>{if(!LK.on)return;const t0=ac().currentTime+.08;
+  LK.timers.push(...lickSchedule(L,t0,u,null,i=>{$$('.ltab .tn.on').forEach(x=>x.classList.remove('on'));const tn=document.querySelector(`.ltab .tn[data-i="${i}"]`);if(tn){tn.classList.add('on');const w=tn.closest('.ltab-wrap');if(w){const r=tn.getBoundingClientRect(),wr=w.getBoundingClientRect();if(r.right>wr.right-30||r.left<wr.left+20)w.scrollLeft+=r.left-wr.left-wr.width/3;}}
+   lickOverlay(L,i);}));
+  const total=(L.len*u+.6)*1000;LK.loopT=setTimeout(()=>{if(!LK.on)return;if(S.lickLoop){LK.timers=[];go();}else lickStop();},total);};
+ go();}
+/* ----- library panel ----- */
+function renderLicks(){const box=$('#ex-licks');if(!box)return;box.innerHTML='';const it=curItem(),minorCtx=it.f.includes('b3')&&!it.f.includes('3');
+ if(!S.lickSel||!LICKS.some(l=>l.id===S.lickSel))S.lickSel=(LICKS.find(l=>l.q===(minorCtx?'minor':'major'))||LICKS[0]).id;
+ if(S.lickShow==null)S.lickShow=true;if(!S.lickSpeed)S.lickSpeed=1;const flt=S.lickFilter||'fit';
+ const head=el('div',{class:'pr-row',style:'justify-content:space-between;flex-wrap:wrap;gap:10px'});
+ head.appendChild(el('h3',{},'Licks '+tipBtn('licks')));
+ const fs=el('div',{class:'seg'});[['fit',minorCtx?'Minor & blues':'Major & country'],['all','All 15']].forEach(([v,l])=>{const b=el('button',{'aria-pressed':String(flt===v)},l);b.onclick=()=>{S.lickFilter=v;save();renderLicks();};fs.appendChild(b);});head.appendChild(fs);box.appendChild(head);
+ const list=el('div',{class:'lk-list'});
+ const fits=l=>l.q==='any'||l.q===(minorCtx?'minor':'major');
+ LICKS.filter(l=>flt==='all'||fits(l)).sort((a,b)=>(fits(b)-fits(a))||(a.lvl-b.lvl)).forEach(l=>{const kk=lickKey(l);
+  const b=el('button',{class:'lk-card'+(l.id===S.lickSel?' on':''),'aria-pressed':String(l.id===S.lickSel)},`<b>${l.name}</b><span>${l.style} · ${'●'.repeat(l.lvl)}${'○'.repeat(3-l.lvl)}</span><small>${l.bars} bar${l.bars>1?'s':''} · ${l.ctx==='turn'?'turnaround':l.ctx==='any'?'any chord':'over '+l.ctx}${kk.rel?` · in ${pretty(kk.name)} ${kk.mode}`:''}</small>`);
+  b.onclick=()=>{lickStop();S.lickSel=l.id;save();renderLicks();};b.ondblclick=()=>{S.lickSel=l.id;save();renderLicks();lickPlay(l);};list.appendChild(b);});
+ box.appendChild(list);
+ const lk=LICKS.find(l=>l.id===S.lickSel),kk=lickKey(lk),L=lickLayout(lk,kk.pc);L.sig=lk.id+'|'+kk.pc+'|'+tuning().join();
+ const det=el('div',{class:'lk-det'});
+ const techs=[...new Set(L.ev.flatMap(e=>[e.bend||e.pre?'bends':'',e.h?'hammer-ons':'',e.p?'pull-offs':'',e.su||e.sd?'slides':'',e.vib?'vibrato':'',e.with?'double-stops':''].filter(Boolean)))];
+ det.appendChild(el('div',{class:'lk-title'},`<b>${lk.name}</b><span>in ${pretty(kk.name)} ${kk.mode}${kk.rel?` <em>(relative ${kk.mode} of ${pretty(S.root)}, same notes)</em>`:''} · frets ${Math.min(...L.ev.map(e=>e.f))}–${Math.max(...L.ev.map(e=>e.f))}</span>`));
+ det.appendChild(el('p',{class:'lk-learn'},lk.learn));
+ if(techs.length){const tg=el('div',{class:'row',style:'gap:6px'});techs.forEach(t=>tg.appendChild(el('span',{class:'lk-tag'},t)));det.appendChild(tg);}
+ const tw=el('div',{class:'ltab-wrap'});tw.innerHTML=lickTabSVG(L);det.appendChild(tw);
+ tw.addEventListener('click',e=>{const g=e.target.closest('.tn');if(!g)return;const ev=L.ev[+g.dataset.i];const c=ac();ksPlay(freq(ev.midi),c.currentTime,.9,.22,{bend:ev.bend?freq(ev.midi+ev.bend):0});lickOverlay(L,+g.dataset.i);$$('.ltab .tn.on').forEach(x=>x.classList.remove('on'));g.classList.add('on');});
+ det.appendChild(el('p',{class:'dd-hint'},'Tab: lines are strings (high e on top), numbers are frets. "full" = bend a whole step, ½ = half step, r = release, h / p = hammer-on / pull-off, / = slide, wavy line = vibrato. Tap a number to hear that note. Circles on the neck show where each note is, numbered in playing order.'));
+ const ctl=el('div',{class:'row',style:'gap:10px;align-items:center;flex-wrap:wrap'});
+ ctl.appendChild(el('button',{class:'btn',id:'lk-play',onclick:()=>{if(LK.on)lickStop();else lickPlay(lk);}},LK.on?'■ Stop':'▶ Play lick'));
+ const sp=el('div',{class:'seg'});[[.5,'50%'],[.75,'75%'],[1,'100%']].forEach(([v,l])=>{const b=el('button',{'aria-pressed':String(S.lickSpeed===v)},l);b.onclick=()=>{S.lickSpeed=v;save();$$('#ex-licks .lk-speed button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(LK.on)lickPlay(lk);};sp.appendChild(b);});sp.classList.add('lk-speed');
+ ctl.append(el('span',{class:'lbl'},'Speed'),sp);
+ const lp=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const lc=el('input',{type:'checkbox'});lc.checked=!!S.lickLoop;lc.onchange=()=>{S.lickLoop=lc.checked;save();};lp.append(lc,document.createTextNode('Loop'));ctl.appendChild(lp);
+ const sh=el('label',{class:'row',style:'gap:6px;cursor:pointer;font-size:14px'});const scb=el('input',{type:'checkbox'});scb.checked=!!S.lickShow;scb.onchange=()=>{S.lickShow=scb.checked;save();lickOverlay(S.lickShow?L:null,null);};sh.append(scb,document.createTextNode('Show on the neck'));ctl.appendChild(sh);
+ ctl.appendChild(el('button',{class:'btn ghost',title:'The band plays and this lick comes in every other bar: you answer it in the free bar',onclick:()=>{lickStop();S.jamLead='licks';S.lickPin=lk.id;save();if(!JAM.on&&$('#jam-go'))$('#jam-go').click();renderExplorer();}},'▶ Trade it over the jam'));
+ det.appendChild(ctl);
+ det.appendChild(el('p',{class:'dd-hint'},`Tempo follows the jam BPM (${S.jamBpm||90}). ${tuning().length===6&&tuning().join()!==LICK_STD.join()?'Written for standard tuning, moved to fit yours.':''}`));
+ box.appendChild(det);
+ lickOverlay(S.lickShow?L:null,null);LK.Lsel=L;}
 
 /* ---------- explorer ---------- */
 function rootNames(){return S.enh==='sharp'?SH:S.enh==='flat'?FL:AUTO;}
@@ -2370,15 +2547,15 @@ $('#sg-up').onclick=()=>transpose(1);$('#sg-down').onclick=()=>transpose(-1);
 $('#sg-bpm').onchange=e=>{let v=+e.target.value;if(!(v>=40&&v<=220))v=90;S.bpm=v;save();};
 let sgSoftT=null;
 function stopPlay(){clearTimeout(playTimer);clearTimeout(sgSoftT);playTimer=null;setTimeout(()=>renderSongNeck(sgNeckIdx),0);$$('.pc.playing').forEach(x=>x.classList.remove('playing'));$('#sg-play').textContent='▶ Play progression';sgfSync();}
-function jfSync(){const b=$('#jf-play');if(!b)return;b.textContent=JAM.on?'■ Stop':'▶ Jam';$('#jf-bpm').textContent=S.jamBpm||90;const l=$('#jf-lead');if(l&&!l.options.length)LEADS.forEach(([v,t])=>l.appendChild(el('option',{value:v},v==='off'?'Lead: off':'Lead: '+t)));if(l)l.value=S.jamLead||'off';if(!JAM.on){const n=$('#jf-now');if(n)n.textContent='Jam';}}
+function jfSync(){const b=$('#jf-play');if(!b)return;b.textContent=JAM.on?'■ Stop':'▶ Jam';$('#jf-bpm').textContent=S.jamBpm||90;const l=$('#jf-lead');if(l&&!l.options.length)LEADS.forEach(([v,t])=>l.appendChild(el('option',{value:v},v==='off'?'Lead: off':'Lead: '+t)));if(l)l.value=S.jamLead||'off';if(!JAM.on){const n=$('#jf-now');if(n)n.textContent='';}}
 function jfCheck(){const f=$('#jam-float'),v=$('#v-explore');if(!f)return;let show=false;const g=$('#jam-go');
  if(v&&!v.hidden&&g&&g.offsetParent!==null){const r=g.getBoundingClientRect();show=r.bottom<4||r.top>window.innerHeight-4;}
  if(show){const bn=document.querySelector('.bottom-nav');const h=bn&&getComputedStyle(bn).display!=='none'?window.innerHeight-bn.getBoundingClientRect().top:0;f.style.bottom=(h+10)+'px';}
  f.classList.toggle('on',show);f.setAttribute('aria-hidden',String(!show));}
 $('#jf-play').onclick=()=>$('#jam-go')&&$('#jam-go').click();
-$('#jf-lead').onchange=e=>{S.jamLead=e.target.value;save();JAM.lp=null;$$('#ex-jam .seg button').forEach((x,i)=>x.setAttribute('aria-pressed',String(LEADS[i]&&LEADS[i][0]===S.jamLead)));};
+$('#jf-lead').onchange=e=>{S.jamLead=e.target.value;if(S.jamLead!=='licks')S.lickPin=null;save();JAM.lp=null;JAM.lickBusy=0;renderJam(exItem(),pcOf(S.root));};
 const jfBpm=d=>{S.jamBpm=Math.max(50,Math.min(200,(S.jamBpm||90)+d));save();const r=$('#jam-bpm-r'),i=$('#jam-bpm');if(r)r.value=S.jamBpm;if(i)i.value=S.jamBpm;jfSync();};
-$('#jf-dn').onclick=()=>jfBpm(-5);$('#jf-up').onclick=()=>jfBpm(5);
+$('#jf-dn').onclick=()=>jfBpm(-5);$('#jf-up').onclick=()=>jfBpm(5);setTimeout(jfSync,0);
 {let raf=0;const q=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;jfCheck();});};document.addEventListener('scroll',q,{capture:true,passive:true});window.addEventListener('resize',q);window.addEventListener('hashchange',q);setInterval(jfCheck,700);}
 function sgfSync(){const b=$('#sgf-play');if(b)b.textContent=playTimer?'■ Stop':'▶ Play';$('#sgf-bpm').textContent=S.bpm;if(!playTimer)sgfNow();}
 function sgfNow(c,n){const x=$('#sgf-now');if(!x)return;if(!c){const ch=curChords().filter(Boolean);x.innerHTML=ch.length?`${ch.length} chords`:'';return;}x.innerHTML=`${chordLabel(c)}${n&&n!==c?` <small>→ ${chordLabel(n)}</small>`:''}`;}
@@ -3024,6 +3201,7 @@ const TIPS={
  triad:['Triads','The three notes of a chord (root, 3rd, 5th) played on three neighbouring strings. Small, light shapes that are easy to move around, great for rhythm parts and for learning the neck. Each string set has three versions: root position, 1st and 2nd inversion.'],
  wheel:['Key wheel','A simplified circle of fifths turned so that your song\'s key is at the top. The three lit majors (IV, I, V) and three minors (ii, vi, iii) are the chords that belong to the key: next to each other on the wheel means they sound good together. The cards below arrange the same chords by role: home chords rest, dominant chords pull back home.'],
  lead:['Lead','A guitar plays over the band using the notes lit on the neck (the box, octave or run you picked). Scale run climbs and falls through the scale; Chord tones plays the notes of each chord; Improvise makes up a phrase every bar that lands on the chord; Call & answer plays one bar and leaves the next one for you.'],
+ licks:['Licks','Short ready-made phrases guitarists use all the time, in blues, rock and country styles. Each one is shown as tab and on the neck, in the key you picked, and can be slowed down, looped, or traded with the jam band: it plays the lick, you answer.'],
  note:['Note','The root of the chord you want to see.']};
 function helpBox(title,html,key){key=key||title;const d=el('details',{class:'help'});d.innerHTML=`<summary>${title}</summary><div class="help-body">${html}</div>`;d.open=!!(S.help||{})[key];d.ontoggle=()=>{S.help=S.help||{};S.help[key]=d.open;save();};return d;}
 const tipBtn=k=>`<button type="button" class="tip" data-tip="${k}" aria-label="What is this?">i</button>`;
