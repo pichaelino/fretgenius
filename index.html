@@ -144,11 +144,15 @@ header.top nav.tabs button[aria-current="page"]{box-shadow:0 4px 16px color-mix(
 html.neck-pin #sg-neck.building{position:static!important;display:block!important;box-shadow:none}
 .sgb-out{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .sgb-name{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.sgb-name b{font:800 34px/1 var(--f-display)}.sgb-name small{color:var(--muted)}
-.fk{margin-top:12px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));display:flex;flex-direction:column;gap:10px}
-.fk.pop{animation:fkpop .45s ease-out}@keyframes fkpop{0%{transform:scale(.98);box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}100%{transform:none;box-shadow:0 0 0 12px transparent}}
-.fk-top{display:flex;align-items:flex-start;gap:10px}.fk-x{margin-left:auto}
-.fk-key{display:flex;flex-direction:column;gap:2px}.fk-key b{font:800 38px/1.05 var(--f-display)}.fk-key small{color:var(--muted)}
-.fk p{margin:0}.fk-why{font-size:14px}
+.pop{animation:fkpop .7s ease-out}@keyframes fkpop{0%{transform:scale(.985);box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}100%{transform:none;box-shadow:0 0 0 14px transparent}}
+.fk-why{font-size:14px;margin:8px 0 0}.fk-scale{margin:4px 0 0}
+.pc.new{border-color:var(--accent);animation:fkpop .9s ease-out}
+.zone-k{font:700 12.5px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 2px 10px;display:flex;align-items:center;gap:10px}
+.zone-k::after{content:'';flex:1;height:1px;background:var(--line)}
+.subnav{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px}
+#v-song .panel,#v-song .neckbar,#v-song .sgrid{scroll-margin-top:calc(var(--hdr-h,64px) + env(safe-area-inset-top,0px) + 14px)}
+details.nb{margin:4px 0}
+details.nb .nbody{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;border-left:0;padding:10px 2px 4px;margin:0}
 .sgc-ctl{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 /* ---- song neck pinned ---- */
 @media (min-width:761px){
@@ -745,13 +749,19 @@ svg .mtog.muted text{fill:var(--bad)}
     <h1 class="vt">Song builder</h1>
     <p class="lede">Type the chords of your song. Fretwise finds the key, writes the Roman numerals, flags borrowed and secondary chords, and suggests what could come next.</p>
   </div>
-  <div class="panel">
+  <nav class="subnav" id="sg-subnav" aria-label="Song builder sections">
+    <button class="btn ghost sm" data-go="sg-write">Chords</button>
+    <button class="btn ghost sm" data-go="sg-neckbar">Play along</button>
+    <button class="btn ghost sm" data-go="sg-key">Key &amp; theory</button>
+    <button class="btn ghost sm" data-go="sg-circle">Circle of fifths</button>
+  </nav>
+  <div class="zone-k">1 · Write your song</div>
+  <div class="panel" id="sg-write">
     <div class="prog-input">
       <input type="text" id="sg-input" aria-label="Chord progression" placeholder="e.g. C G Am F" spellcheck="false" autocomplete="off">
       <button class="btn" id="sg-findkey-btn">🔍 Find the key</button>
       <button class="btn ghost" id="sg-clear">Clear</button>
     </div>
-    <div class="fk" id="sg-findkey" hidden></div>
     <div class="row" style="justify-content:space-between">
       <span class="empty" id="sg-note">Separate chords with spaces. Slash chords (G/B), sevenths and extensions (Cmaj7, Dm9, E7♯9) all work.</span>
       <div class="row">
@@ -772,10 +782,12 @@ svg .mtog.muted text{fill:var(--bad)}
       </div>
     </div>
   </div>
-  <div class="panel" id="sg-shapes"></div>
+  <div class="zone-k">2 · Play it</div>
   <div class="neckbar" id="sg-neckbar"></div>
   <div class="panel sg-neck" id="sg-neck"></div>
+  <div class="panel" id="sg-shapes"></div>
   <div class="sg-float" id="sg-float" aria-hidden="true"><button class="btn" id="sgf-play">▶ Play</button><span class="sgf-now" id="sgf-now"></span><span class="sgf-bpm"><button class="btn ghost sm" id="sgf-dn" aria-label="Slower">−</button><b id="sgf-bpm">90</b><small>BPM</small><button class="btn ghost sm" id="sgf-up" aria-label="Faster">+</button></span></div>
+  <div class="zone-k">3 · Key &amp; theory</div>
   <div class="sgrid">
     <div class="col">
       <div class="panel" id="sg-key"></div>
@@ -788,6 +800,7 @@ svg .mtog.muted text{fill:var(--bad)}
       <div class="panel" id="sg-templates"></div>
     </div>
   </div>
+  <div class="zone-k">4 · Circle of fifths</div>
   <div class="panel sg-circle" id="sg-circle">
     <div class="sgc-head"><h3>Circle of fifths</h3><span class="sgc-sub" id="sgc-sub"></span></div>
     <div class="cgrid">
@@ -1205,7 +1218,10 @@ function mirrorSVG(svg){if(!S.lefty)return svg;const m=svg.match(/viewBox="0 0 (
  return svg.slice(0,i)+`<g transform="translate(${W} 0) scale(-1 1)">`+body+'</g></svg>';}
 function nutScroll(){['#ex-board','#fd-board'].forEach(id=>{const w=$(id);if(w)w.scrollLeft=S.lefty?w.scrollWidth:0;});}
 function rerenderView(){const f={explore:renderExplorer,finder:renderFinder,keys:renderKeys,song:renderSong}[S.view];if(f)f();}
-function neckBar(sel){const box=$(sel);if(!box)return;box.innerHTML='';
+function neckBar(sel){const host=$(sel);if(!host)return;host.innerHTML='';
+ const d=el('details',{class:'help nb'});d.innerHTML='<summary>⚙ Neck & display settings</summary>';
+ const box=el('div',{class:'help-body nbody'});d.appendChild(box);d.open=!!(S.help||{}).neckbar;
+ d.ontoggle=()=>{S.help=S.help||{};S.help.neckbar=d.open;save();};host.appendChild(d);
  box.appendChild(el('span',{class:'lbl'},'Neck view '+tipBtn('neck')));
  const sg=el('div',{class:'seg'});
  [['player',`Low ${pretty('E')} on top`,'As you see the neck while you play'],['tab',`High ${pretty('E')} on top`,'Same order as a tab']].forEach(([v,l,t])=>{const b=el('button',{'aria-pressed':String(S.neck===v),title:t},l);b.onclick=()=>{S.neck=v;save();rerenderView();};sg.appendChild(b);});
@@ -1975,32 +1991,21 @@ function songMidis(c){const tun=songTuning(),vs=songVoicings(c);if(!vs.length)re
  const v=vs[(songShapeIdx.get(c.raw)||0)%vs.length];return v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}
 let sgNeckIdx=0;
 function songVoicing(c){const vs=songVoicings(c);return vs.length?vs[(songShapeIdx.get(c.raw)||0)%vs.length]:null;}
-let sgBuild=null;
-function sgFindKeyRender(valid,ranks,key){const b=$('#sg-findkey');if(!b)return;b.hidden=!S.findKey;if(!S.findKey)return;
- if(!valid||!valid.length){b.innerHTML='<p class="empty">Type or add a few chords first, then press Find the key.</p>';return;}
+let sgBuild=null,sgBuildFrom=null;
+function sgFindKeyRender(valid,ranks,key){const b=$('#sg-key');if(!b||!valid.length)return;
  const ivs=key.mode==='major'?['1','2','3','4','5','6','7']:['1','2','b3','4','5','b6','b7'];const scale=ivs.map(l=>pretty(spellIv(key.name,l))).join(' ');
  const ks=keySet(key.t,key.mode);const fit=valid.filter(c=>chordPcs(c).every(x=>ks.has(x))).length;
  const tq=c=>key.mode==='major'?!isMinorish(c):isMinorish(c);const first=valid[0],last=valid[valid.length-1];
  const why=[`${fit} of ${valid.length} chords use only notes from this key`];
  if(first.pc===key.t&&tq(first))why.push('the song starts on the home chord');
  if(last.pc===key.t&&tq(last))why.push('it ends on the home chord');
- if(first.pc!==key.t&&last.pc!==key.t)why.push('it never starts or ends on the home chord, so it could also be heard in another key');
- const conf=key.p>.6?'Clear':key.p>.35?'Likely':'Ambiguous';
- b.innerHTML='';
- const top=el('div',{class:'fk-top'});
- top.appendChild(el('div',{class:'fk-key'},`<span class="lbl">Your song is in</span><b>${pretty(key.name)} ${key.mode}</b><small>${S.forced?'chosen by you':conf+' · '+Math.round(key.p*100)+'% match'}</small>`));
- top.appendChild(el('button',{class:'btn ghost sm fk-x','aria-label':'Close',onclick:()=>{S.findKey=false;save();b.hidden=true;}},'×'));
- b.appendChild(top);
+ if(first.pc!==key.t&&last.pc!==key.t)why.push('it never starts or ends on the home chord, so another key could also work');
  b.appendChild(el('p',{class:'fk-why'},`<b>Why:</b> ${why.join(', ')}.`));
  b.appendChild(el('p',{class:'fk-scale'},`<span class="lbl">Scale</span> <span class="mono">${scale}</span>`));
- const alts=ranks.filter(r=>r!==key&&r.p>=.02).slice(0,3);
- const row=el('div',{class:'row',style:'gap:6px;align-items:center'});
- if(alts.length){row.appendChild(el('span',{class:'lbl'},'Could also be'));alts.forEach(r=>row.appendChild(el('button',{class:'btn ghost sm',title:'Analyse the song in this key',onclick:()=>{S.forced={t:r.t,mode:r.mode};save();renderSong();}},`${pretty(r.name)} ${r.mode} <small style="color:var(--muted)">${Math.round(r.p*100)}%</small>`)));}
- if(S.forced)row.appendChild(el('button',{class:'btn ghost sm',onclick:()=>{S.forced=null;save();renderSong();}},'↺ Detected key'));
- b.appendChild(row);
- const act=el('div',{class:'row',style:'gap:8px'});
+ const act=el('div',{class:'row',style:'gap:8px;margin-top:8px'});
  act.append(el('button',{class:'btn sm',onclick:()=>{S.root=key.name;S.kind='scales';S.item.scales=key.mode==='major'?'major':'natmin';save();go('explore');}},'Show the scale on the neck'),
-  el('button',{class:'btn ghost sm',onclick:()=>$('#sg-circle').scrollIntoView({behavior:'smooth',block:'start'})},'See it on the circle of fifths'));
+  el('button',{class:'btn ghost sm',onclick:()=>sgScrollTo($('#sg-circle'))},'See it on the circle of fifths'));
+ if(S.forced)act.append(el('button',{class:'btn ghost sm',onclick:()=>{S.forced=null;save();renderSong();}},'↺ Detected key'));
  b.appendChild(act);
 }
 function renderSongBuild(box,valid,idx){const tun=songTuning();
@@ -2008,7 +2013,7 @@ function renderSongBuild(box,valid,idx){const tun=songTuning();
  box.innerHTML='';const head=el('div',{class:'sgn-head'});head.appendChild(el('h3',{},'Build a chord on the neck'));
  const nav=el('div',{class:'row',style:'gap:6px;margin-left:auto'});
  nav.append(el('button',{class:'btn ghost sm',onclick:()=>{sgBuild=new Array(tun.length).fill(null);renderSongNeck(idx);}},'Clear'));
- if(valid.length)nav.append(el('button',{class:'btn ghost sm',onclick:()=>{sgBuild=null;renderSongNeck(idx);}},'Close'));
+ if(valid.length)nav.append(el('button',{class:'btn ghost sm',onclick:()=>{sgBuild=null;sgBuildFrom=null;renderSongNeck(idx);}},'Close'));
  head.appendChild(nav);box.appendChild(head);
  const wrap=el('div',{class:'board-wrap sgn-buildb'},finderSVG(tun,sgBuild));box.appendChild(wrap);
  wrap.addEventListener('click',e=>{const t=e.target.closest('[data-s],[data-tog]');if(!t)return;let st;
@@ -2023,8 +2028,12 @@ function renderSongBuild(box,valid,idx){const tun=songTuning();
   const row=el('div',{class:'row',style:'gap:8px'});
   row.appendChild(el('button',{class:'btn',onclick:()=>sgAddBuilt(best)},`+ Add ${pretty(best)} to the song`));
   row.appendChild(el('button',{class:'btn ghost',onclick:()=>strum(sgBuild.map((f,s)=>f===null?null:tun[s]+f).filter(x=>x!==null))},'▶ Hear it'));
+  if(sgBuildFrom!=null&&valid[sgBuildFrom])row.appendChild(el('button',{class:'btn ghost',title:'Swap chord '+(sgBuildFrom+1)+' for this one',onclick:()=>sgReplaceBuilt(best)},`↻ Replace ${chordLabel(valid[sgBuildFrom])} (chord ${sgBuildFrom+1})`));
   out.appendChild(row);
-  if(names.length>1){const alt=el('div',{class:'row',style:'gap:6px;align-items:center'});alt.appendChild(el('span',{class:'lbl'},'Or add it as'));names.slice(1,5).forEach(n=>alt.appendChild(el('button',{class:'btn ghost sm',onclick:()=>sgAddBuilt(n)},pretty(n))));out.appendChild(alt);}
+  const altNames=[],seenN=new Set([best]);
+  res.partial.forEach(pp=>{if(pp.root!==res.bass||pp.missing.length>1)return;const nm=nameOf(pp.root,pp.type,res.bass);if(seenN.has(nm))return;seenN.add(nm);const ml=lblFor(pp.root,pp.type,pp.missing[0]);altNames.push([nm,'no '+(ml==='5'?'5th':ml==='3'?'3rd':pretty(ml))]);});
+  names.slice(1).forEach(n=>{if(!seenN.has(n)){seenN.add(n);altNames.push([n,null]);}});
+  if(altNames.length){const alt=el('div',{class:'row',style:'gap:6px;align-items:center;flex-wrap:wrap'});alt.appendChild(el('span',{class:'lbl'},'Same notes, other names'));altNames.slice(0,5).forEach(([n,note])=>alt.appendChild(el('button',{class:'btn ghost sm',title:'Add it to the song as '+n,onclick:()=>sgAddBuilt(n)},pretty(n)+(note?` <small style="color:var(--muted)">${note}</small>`:''))));out.appendChild(alt);}
  } else {
   out.appendChild(el('div',{class:'sgb-name'},`<b>${res.pcs.map(p=>pretty(AUTO[p])).join(' · ')}</b><small>not a full chord yet</small>`));
   const seen=new Set(),sug=[];res.partial.forEach(p=>{const n=nameOf(p.root,p.type);if(!seen.has(n)&&p.missing.length===1){seen.add(n);sug.push([n,p]);}});
@@ -2032,10 +2041,16 @@ function renderSongBuild(box,valid,idx){const tun=songTuning();
  }
  box.appendChild(out);
 }
-function sgAddBuilt(name){const shape=sgBuild?sgBuild.slice():null;sgBuild=null;addChord(name+(shape&&shape.some(f=>f!==null)?shapeEnc(shape.map(f=>f===null?-1:f)):''));
- const list=curChords().filter(Boolean),last=list[list.length-1];
-
- renderSongNeck(list.length-1,true);}
+const sgShapeSuf=shape=>shape&&shape.some(f=>f!==null)?shapeEnc(shape.map(f=>f===null?-1:f)):'';
+function sgFlashChip(i){setTimeout(()=>{const chip=document.querySelector(`.pc[data-i="${i}"]`);if(chip){chip.classList.add('new');chip.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>chip.classList.remove('new'),1300);}},80);}
+function sgAddBuilt(name){const shape=sgBuild?sgBuild.slice():null;sgBuild=null;sgBuildFrom=null;addChord(name+sgShapeSuf(shape));
+ const n=curChords().filter(Boolean).length;renderSongNeck(n-1,true);sgFlashChip(n-1);}
+function sgReplaceBuilt(name){const shape=sgBuild?sgBuild.slice():null;const i=sgBuildFrom;sgBuild=null;sgBuildFrom=null;
+ const t=name+sgShapeSuf(shape);const{tk,vi}=songTok();
+ if(i==null||vi[i]==null){addChord(t);return;}
+ const at=t.indexOf('@');tk[vi[i]]=nameIn(at>0?t.slice(0,at):t)+(at>0?t.slice(at):'');
+ S.song=tk.join(' ');S.songIsSample=false;save();renderSong();renderSongNeck(i,true);sgFlashChip(i);
+ const c=parseChord(tk[vi[i]]);if(c)strum(songMidis(c));}
 function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const valid=curChords().filter(Boolean);
  box.classList.toggle('building',!!sgBuild);
  if(sgBuild||!valid.length){renderSongBuild(box,valid,idx);return;}
@@ -2053,7 +2068,7 @@ function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const 
  const nav=el('div',{class:'row',style:'gap:6px;margin-left:auto'});
  nav.append(el('button',{class:'btn ghost sm','aria-label':'Previous chord',onclick:()=>{renderSongNeck(idx-1,true);strum(songMidis(valid[(idx-1+valid.length)%valid.length]));}},'◀'),
   el('button',{class:'btn ghost sm','aria-label':'Next chord',onclick:()=>{renderSongNeck(idx+1,true);strum(songMidis(valid[(idx+1)%valid.length]));}},'▶'));
- nav.prepend(el('button',{class:'btn sm ghost',title:'Place notes on the neck and add the chord to your song',onclick:()=>{const t=songTuning();sgBuild=v&&v.frets.length===t.length?v.frets.map(f=>f>=0?f:null):new Array(t.length).fill(null);renderSongNeck(idx);}},'✎ Build a chord'));
+ nav.prepend(el('button',{class:'btn sm ghost',title:'Place notes on the neck and add the chord to your song',onclick:()=>{const t=songTuning();sgBuildFrom=idx;sgBuild=v&&v.frets.length===t.length?v.frets.map(f=>f>=0?f:null):new Array(t.length).fill(null);renderSongNeck(idx);}},'✎ Build a chord'));
  head.appendChild(nav);box.appendChild(head);
  const now=el('div',{class:'sgn-now'});
  now.innerHTML=`<div><span class="lbl">${playing?'Play now':'Chord'}</span><b class="sgn-name">${chordLabel(c)}</b><small>${ch.f.map(l=>pretty(spellIv(c.root,l))).join(' ')}</small></div>`+(valid.length>1?`<div class="sgn-next"><span class="lbl">Next</span><b>${chordLabel(nx)}</b><small>dashed rings on the neck</small></div>`:'');
@@ -2196,7 +2211,11 @@ function sgPattern(mm,beat){const st=S.sgStyle||'strum',T=SGT[S.sgTime]||SGT['4/
  else if(st==='arp'){const seq=[...lo,...lo.slice(1,-1).reverse()];const n=T.bar*T.sub;for(let i=0;i<n;i++)pluck(freq(seq[i%seq.length]),i*beat/T.sub,beat*1.6,.17);}
  else T.strum.forEach(([t,k])=>{const at=t*beat;if(k==='F')strum(mm,at,.028,beat*2.2,.15);else if(k==='U')strum([...mm].reverse().slice(0,4),at,.02,beat*2,.09);else strum([...mm].reverse().slice(0,3),at,.018,beat*1.2,.07);});
  return T.bar;}
-$('#sg-findkey-btn').onclick=()=>{S.findKey=true;S.forced=null;save();renderSong();const b=$('#sg-findkey');if(b&&!b.hidden){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');b.scrollIntoView({behavior:'smooth',block:'nearest'});}};
+function sgScrollTo(t){if(!t)return;const hdr=(document.querySelector('header.top')?.offsetHeight||64);
+ const nk=$('#sg-neck');const pin=document.documentElement.classList.contains('neck-pin')&&nk&&!nk.classList.contains('building')&&nk.compareDocumentPosition(t)&Node.DOCUMENT_POSITION_FOLLOWING?nk.offsetHeight+12:0;
+ const y=Math.max(0,t.getBoundingClientRect().top+window.scrollY-hdr-pin-14);window.scrollTo({top:y,behavior:'smooth'});}
+$('#sg-findkey-btn').onclick=()=>{const b=$('#sg-key');if(!b)return;sgScrollTo(b);b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');};
+{const sn=$('#sg-subnav');if(sn)sn.onclick=e=>{const x=e.target.closest('[data-go]');if(!x)return;sgScrollTo($('#'+x.dataset.go));};}
 $('#sg-play').onclick=()=>{
  if(playTimer){stopPlay();return;}
  const ch=curChords().filter(Boolean);if(!ch.length)return;ac();
