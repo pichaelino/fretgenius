@@ -1784,7 +1784,12 @@ const IT_RE=/^(Do|Re|Mi|Fa|Sol|La|Si)(?=[^a-z]|b|m|maj|min|dim|aug|sus|add|$)/i;
 const IT_L={do:'C',re:'D',mi:'E',fa:'F',sol:'G',la:'A',si:'B'};
 function itToEn(tok){let t=String(tok).trim();const m=t.match(/^(Do|Re|Mi|Fa|Sol|La|Si)/i);if(!m)return null;t=IT_L[m[1].toLowerCase()]+t.slice(m[1].length);
  t=t.replace(/\/(Do|Re|Mi|Fa|Sol|La|Si)/i,(x,n)=>'/'+IT_L[n.toLowerCase()]);t=t.replace(/^([A-G][#b♯♭]?)7\+/,'$1maj7');return t;}
-function parseChord(tok){
+// a chord token can carry a shape: "Am@x07555" (or "Am@x.0.12.10.10.10" when a fret is above 9)
+const shapeEnc=fr=>'@'+(fr.every(f=>f<10)?fr.map(f=>f<0?'x':f).join(''):fr.map(f=>f<0?'x':f).join('.'));
+function shapeDec(t){const a=t.includes('.')?t.split('.'):t.split('');const fr=a.map(x=>x==='x'||x==='X'?-1:+x);return fr.every(f=>Number.isFinite(f)&&f>=-1&&f<=30)?fr:null;}
+function parseChord(tok){const m=String(tok).match(/^(.+?)@([xX\d.]+)$/);if(!m)return parseChord0(tok);
+ const c=parseChord0(m[1]);if(!c)return c;const sh=shapeDec(m[2]);return sh?{...c,raw:String(tok),shape:sh}:{...c,raw:String(tok)};}
+function parseChord0(tok){
  const en=parseChordEn(tok);let it=null;const conv=IT_RE.test(String(tok).trim())?itToEn(tok):null;
  if(conv){const r=parseChordEn(conv);if(r)it={...r,raw:tok};}
  if(it&&(!en||en.guess||/^o$/i.test(en.suf)||isIt()&&!it.guess))return it;
@@ -1958,12 +1963,14 @@ function renderSong(){
  renderCircle();
 }
 const SGC={chords:[],key:null};
-function addChord(name){S.song=(S.song.trim()+' '+nameIn(name)).trim();S.songIsSample=false;save();renderSong();strum(bestVoicingMidis(parseChord(name).pc,parseChord(name).type,songTuning()));}
+function addChord(name){const at=name.indexOf('@'),base=at>0?name.slice(0,at):name,suf=at>0?name.slice(at):'';const tok=nameIn(base)+suf;S.song=(S.song.trim()+' '+tok).trim();S.songIsSample=false;save();renderSong();const c=parseChord(tok);if(c)strum(songMidis(c));}
 function songTuning(){const t=tuning();return t.length>=6&&t.length<=7?t:TU.std.n;}
 const songShapeIdx=new Map(),songVCache=new Map();
 function songVoicings(c){const tun=songTuning();const key=c.pc+'|'+c.type+'|'+c.bpc+'|'+tun.join(',');
  if(!songVCache.has(key)){const ch=CH[c.type];let vs=voicings(c.pc,ch.f,ch.opt,tun,c.bpc,'ease');if(!vs.length&&c.bpc!=null)vs=voicings(c.pc,ch.f,ch.opt,tun,null,'ease');songVCache.set(key,vs);}
- return songVCache.get(key);}
+ const vs=songVCache.get(key),cu=c.shape;
+ if(cu&&cu.length===tun.length){const fr=cu.filter(x=>x>0);const k=cu.join();return[{frets:cu.slice(),mn:fr.length?Math.min(...fr):0,custom:true},...vs.filter(v=>v.frets.join()!==k)];}
+ return vs;}
 function songMidis(c){const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return bestVoicingMidis(c.pc,c.type,tun);
  const v=vs[(songShapeIdx.get(c.raw)||0)%vs.length];return v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}
 let sgNeckIdx=0;
@@ -2025,9 +2032,9 @@ function renderSongBuild(box,valid,idx){const tun=songTuning();
  }
  box.appendChild(out);
 }
-function sgAddBuilt(name){const shape=sgBuild?sgBuild.slice():null;sgBuild=null;addChord(name);
+function sgAddBuilt(name){const shape=sgBuild?sgBuild.slice():null;sgBuild=null;addChord(name+(shape&&shape.some(f=>f!==null)?shapeEnc(shape.map(f=>f===null?-1:f)):''));
  const list=curChords().filter(Boolean),last=list[list.length-1];
- if(shape&&last){const vs=songVoicings(last),k=vs.findIndex(v=>v.frets.map(f=>f<0?null:f).join()===shape.join());if(k>=0){songShapeIdx.set(last.raw,k);renderSong();}}
+
  renderSongNeck(list.length-1,true);}
 function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const valid=curChords().filter(Boolean);
  box.classList.toggle('building',!!sgBuild);
@@ -2072,7 +2079,7 @@ function renderSongShapes(valid){
   const fretted=v.frets.filter(x=>x>0),mn=fretted.length?Math.min(...fretted):0,mx=fretted.length?Math.max(...fretted):0;
   const pos=mx<=4&&v.frets.includes(0)?'Open position':(fretted.filter(x=>x===mn).length>=2?`Barre, fret ${mn}`:`Fret ${mn}`);
   const ms=v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);
-  card.appendChild(top);card.insertAdjacentHTML('beforeend',`<span class="vname">${chordLabel(c)}</span><span class="vpos">${idx===0?'Easiest · ':''}${pos}</span>`);
+  card.appendChild(top);card.insertAdjacentHTML('beforeend',`<span class="vname">${chordLabel(c)}</span><span class="vpos">${v.custom?'Your shape · ':idx===0?'Easiest · ':''}${pos}</span>`);
   const play=el('button',{class:'shape-play',title:'Play '+c.raw,'aria-label':'Play '+c.raw},diagramSVG(v,tun,c.pc)+`<small>${v.frets.map(x=>x<0?'x':x).join(' ')}</small>`);
   play.onclick=()=>{strum(ms);renderSongNeck(ci,true);};card.appendChild(play);
   const nav=el('div',{class:'shape-nav'});
@@ -2157,7 +2164,7 @@ $('#sg-clear').onclick=()=>{S.song='';S.songIsSample=false;S.forced=null;save();
 function transpose(n){const ch=curChords().filter(Boolean);if(!ch.length)return;
  const moved=ch.map(c=>({...c,pc:(c.pc+n+12)%12,bpc:c.bpc===null?null:(c.bpc+n+12)%12}));
  let key=detectKey(moved)[0];if(S.forced){const t=(S.forced.t+n+12)%12;key={t,mode:S.forced.mode,name:keyName(t,S.forced.mode)};S.forced={t,mode:S.forced.mode};}
- S.song=moved.map(c=>nameIn(respell(c,key))).join(' ');S.songIsSample=false;save();$('#sg-input').value=S.song;renderSong();}
+ S.song=moved.map(c=>{let t=nameIn(respell(c,key));if(c.shape&&c.shape.every(f=>f<0||f+n>=0))t+=shapeEnc(c.shape.map(f=>f<0?-1:f+n));return t;}).join(' ');S.songIsSample=false;save();$('#sg-input').value=S.song;renderSong();}
 $('#sg-up').onclick=()=>transpose(1);$('#sg-down').onclick=()=>transpose(-1);
 $('#sg-bpm').onchange=e=>{let v=+e.target.value;if(!(v>=40&&v<=220))v=90;S.bpm=v;save();};
 let sgSoftT=null;
@@ -2622,7 +2629,7 @@ const CPOP=el('div',{class:'cpop',role:'tooltip'});CPOP.hidden=true;document.bod
 function chordPopShape(name,ctx){const c=parseChord(name);if(!c)return null;
  if(ctx==='tab'&&TABDOC){const tun=TABDOC.tun;const def=TABDOC.defs[name]&&shapeFromStr(TABDOC.defs[name][0],tun.length);if(def)return{c,tun,v:{frets:def},src:'shape from the tab'};
   const vs=voicings(c.pc,CH[c.type].f,CH[c.type].opt,tun,c.bpc,'ease');return vs.length?{c,tun,v:vs[0],src:'easiest shape'}:null;}
- const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return null;const i=(songShapeIdx.get(c.raw)||0)%vs.length;return{c,tun,v:vs[i],src:i===0?'easiest shape':`shape ${i+1} of ${vs.length}`};}
+ const tun=songTuning(),vs=songVoicings(c);if(!vs.length)return null;const i=(songShapeIdx.get(c.raw)||0)%vs.length;return{c,tun,v:vs[i],src:vs[i].custom?'your shape':i===0?'easiest shape':`shape ${i+1} of ${vs.length}`};}
 function showChordPop(t){const name=t.getAttribute('data-pop'),ctx=t.getAttribute('data-popctx');const r=chordPopShape(name,ctx);if(!r){hideChordPop();return;}
  cpopFor=t;const note=t.getAttribute('data-popnote');CPOP.innerHTML=`<b>${chordLabel(name)}</b>${note?`<span class="cpn">${note.replace(/</g,'&lt;')}</span>`:''}<span>${r.src}</span>`+diagramSVG(r.v,r.tun,r.c.pc)+`<small>${r.v.frets.map(x=>x<0?'x':x).join(' ')}</small>`;CPOP.hidden=false;
  const b=t.getBoundingClientRect(),pw=CPOP.offsetWidth,ph=CPOP.offsetHeight,vw=window.innerWidth;
