@@ -141,6 +141,9 @@ header.top nav.tabs button[aria-current="page"]{box-shadow:0 4px 16px color-mix(
   main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))!important}
 }
 .board-wrap.sgn-board svg{min-width:calc(var(--nf,12) * 56px + 90px)}
+html.neck-pin #sg-neck.building{position:static!important;display:block!important;box-shadow:none}
+.sgb-out{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.sgb-name{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.sgb-name b{font:800 34px/1 var(--f-display)}.sgb-name small{color:var(--muted)}
 /* ---- song neck pinned ---- */
 @media (min-width:761px){
   html.neck-pin #sg-neck{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:8px 18px;align-items:center;padding:12px 16px}
@@ -754,6 +757,7 @@ svg .mtog.muted text{fill:var(--bad)}
     <div class="row" style="justify-content:space-between">
       <div class="legend"><span><i style="background:var(--ink)"></i>In key</span><span><i style="background:var(--borrow)"></i>Borrowed</span><span><i style="background:var(--sec)"></i>Secondary dominant</span><span><i style="background:var(--chrom)"></i>Outside the key</span></div>
       <div class="row">
+        <label class="lbl" for="sg-style">Play as</label><select id="sg-style" aria-label="Playing style"><option value="strum">Strum</option><option value="boom">Bass + chord (staccato)</option><option value="arp">Arpeggio</option></select>
         <label class="lbl" for="sg-bpm">BPM</label><input type="number" id="sg-bpm" min="40" max="220" value="90" style="width:72px">
         <button class="btn" id="sg-play">▶ Play progression</button>
       </div>
@@ -1954,8 +1958,43 @@ function songMidis(c){const tun=songTuning(),vs=songVoicings(c);if(!vs.length)re
  const v=vs[(songShapeIdx.get(c.raw)||0)%vs.length];return v.frets.map((f,s)=>f>=0?tun[s]+f:null).filter(x=>x!==null);}
 let sgNeckIdx=0;
 function songVoicing(c){const vs=songVoicings(c);return vs.length?vs[(songShapeIdx.get(c.raw)||0)%vs.length]:null;}
+let sgBuild=null;
+function renderSongBuild(box,valid,idx){const tun=songTuning();
+ if(!sgBuild||sgBuild.length!==tun.length)sgBuild=new Array(tun.length).fill(null);
+ box.innerHTML='';const head=el('div',{class:'sgn-head'});head.appendChild(el('h3',{},'Build a chord on the neck'));
+ const nav=el('div',{class:'row',style:'gap:6px;margin-left:auto'});
+ nav.append(el('button',{class:'btn ghost sm',onclick:()=>{sgBuild=new Array(tun.length).fill(null);renderSongNeck(idx);}},'Clear'));
+ if(valid.length)nav.append(el('button',{class:'btn ghost sm',onclick:()=>{sgBuild=null;renderSongNeck(idx);}},'Close'));
+ head.appendChild(nav);box.appendChild(head);
+ const wrap=el('div',{class:'board-wrap sgn-buildb'},finderSVG(tun,sgBuild));box.appendChild(wrap);
+ wrap.addEventListener('click',e=>{const t=e.target.closest('[data-s],[data-tog]');if(!t)return;let st;
+  if(t.dataset.tog!==undefined){st=+t.dataset.tog;sgBuild[st]=sgBuild[st]===null?0:null;}
+  else{st=+t.dataset.s;const f=+t.dataset.f;sgBuild[st]=sgBuild[st]===f?null:f;}
+  if(sgBuild[st]!==null)pluck(freq(tun[st]+sgBuild[st]),0,1.4,.22);const sl=wrap.scrollLeft;renderSongNeck(idx);const w=$('#sg-neck .sgn-buildb');if(w)w.scrollLeft=sl;});
+ const res=identify(sgBuild.map((f,s)=>f===null?null:tun[s]+f));const out=el('div',{class:'sgb-out'});
+ if(!res.pcs||!res.pcs.length)out.appendChild(el('p',{class:'empty'},valid.length?'Tap frets to place notes (one per string). Tap a string name to play it open or mute it.':'Tap frets to place notes and build your first chord, or type chords above.'));
+ else if(res.full.length){const names=[...new Set(res.full.map(x=>nameOf(x.root,x.type,res.bass)))];
+  const best=names[0];const b=res.full[0];
+  out.appendChild(el('div',{class:'sgb-name'},`<b>${pretty(best)}</b><small>${pretty(AUTO[b.root])} ${CH[b.type].name.toLowerCase()}</small>`));
+  const row=el('div',{class:'row',style:'gap:8px'});
+  row.appendChild(el('button',{class:'btn',onclick:()=>sgAddBuilt(best)},`+ Add ${pretty(best)} to the song`));
+  row.appendChild(el('button',{class:'btn ghost',onclick:()=>strum(sgBuild.map((f,s)=>f===null?null:tun[s]+f).filter(x=>x!==null))},'▶ Hear it'));
+  out.appendChild(row);
+  if(names.length>1){const alt=el('div',{class:'row',style:'gap:6px;align-items:center'});alt.appendChild(el('span',{class:'lbl'},'Or add it as'));names.slice(1,5).forEach(n=>alt.appendChild(el('button',{class:'btn ghost sm',onclick:()=>sgAddBuilt(n)},pretty(n))));out.appendChild(alt);}
+ } else {
+  out.appendChild(el('div',{class:'sgb-name'},`<b>${res.pcs.map(p=>pretty(AUTO[p])).join(' · ')}</b><small>not a full chord yet</small>`));
+  const seen=new Set(),sug=[];res.partial.forEach(p=>{const n=nameOf(p.root,p.type);if(!seen.has(n)&&p.missing.length===1){seen.add(n);sug.push([n,p]);}});
+  if(sug.length){const alt=el('div',{class:'row',style:'gap:6px;align-items:center'});alt.appendChild(el('span',{class:'lbl'},'Add one note for'));sug.slice(0,5).forEach(([n,p])=>alt.appendChild(el('button',{class:'btn ghost sm',title:'Missing: '+p.missing.map(m=>pretty(AUTO[m])).join(', ')+' · tap to add this chord to the song',onclick:()=>sgAddBuilt(n)},`${pretty(n)} <small style="color:var(--muted)">+${p.missing.map(m=>pretty(AUTO[m])).join(' ')}</small>`)));out.appendChild(alt);}
+ }
+ box.appendChild(out);
+}
+function sgAddBuilt(name){const shape=sgBuild?sgBuild.slice():null;sgBuild=null;addChord(name);
+ const list=curChords().filter(Boolean),last=list[list.length-1];
+ if(shape&&last){const vs=songVoicings(last),k=vs.findIndex(v=>v.frets.map(f=>f<0?null:f).join()===shape.join());if(k>=0){songShapeIdx.set(last.raw,k);renderSong();}}
+ renderSongNeck(list.length-1,true);}
 function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const valid=curChords().filter(Boolean);
- if(!valid.length){box.innerHTML='<h3>Play along on the neck</h3><p class="empty">Add chords and the neck shows where to put your fingers.</p>';return;}
+ box.classList.toggle('building',!!sgBuild);
+ if(sgBuild||!valid.length){renderSongBuild(box,valid,idx);return;}
  idx=((idx%valid.length)+valid.length)%valid.length;sgNeckIdx=idx;const c=valid[idx],nx=valid[(idx+1)%valid.length],tun=songTuning();
  const v=songVoicing(c),vn=songVoicing(nx);const ch=CH[c.type];
  const marks=new Map();ch.f.forEach(l=>{const pc=(c.pc+IV[l])%12;if(!marks.has(pc))marks.set(pc,{lab:pretty(spellIv(c.root,l)),root:l==='1',cat:ivCat(l)});});
@@ -1970,6 +2009,7 @@ function renderSongNeck(idx,flash){const box=$('#sg-neck');if(!box)return;const 
  const nav=el('div',{class:'row',style:'gap:6px;margin-left:auto'});
  nav.append(el('button',{class:'btn ghost sm','aria-label':'Previous chord',onclick:()=>{renderSongNeck(idx-1,true);strum(songMidis(valid[(idx-1+valid.length)%valid.length]));}},'◀'),
   el('button',{class:'btn ghost sm','aria-label':'Next chord',onclick:()=>{renderSongNeck(idx+1,true);strum(songMidis(valid[(idx+1)%valid.length]));}},'▶'));
+ nav.prepend(el('button',{class:'btn sm ghost',title:'Place notes on the neck and add the chord to your song',onclick:()=>{const t=songTuning();sgBuild=v&&v.frets.length===t.length?v.frets.map(f=>f>=0?f:null):new Array(t.length).fill(null);renderSongNeck(idx);}},'✎ Build a chord'));
  head.appendChild(nav);box.appendChild(head);
  const now=el('div',{class:'sgn-now'});
  now.innerHTML=`<div><span class="lbl">${playing?'Play now':'Chord'}</span><b class="sgn-name">${chordLabel(c)}</b><small>${ch.f.map(l=>pretty(spellIv(c.root,l))).join(' ')}</small></div>`+(valid.length>1?`<div class="sgn-next"><span class="lbl">Next</span><b>${chordLabel(nx)}</b><small>dashed rings on the neck</small></div>`:'');
@@ -2098,6 +2138,13 @@ function sgfCheck(){const f=$('#sg-float'),v=$('#v-song');if(!f)return;let show=
 let sgfRaf=0;const sgfQ=()=>{if(sgfRaf)return;sgfRaf=requestAnimationFrame(()=>{sgfRaf=0;sgfCheck();});};
 document.addEventListener('scroll',sgfQ,{capture:true,passive:true});window.addEventListener('scroll',sgfQ,{passive:true});window.addEventListener('resize',sgfQ);window.addEventListener('hashchange',sgfQ);setInterval(sgfCheck,700);
 window.addEventListener('resize',sgfPos);sgfSync();
+if(!['strum','boom','arp'].includes(S.sgStyle))S.sgStyle='strum';$('#sg-style').value=S.sgStyle;$('#sg-style').onchange=e=>{S.sgStyle=e.target.value;save();};
+function sgPattern(mm,beat){const st=S.sgStyle||'strum',lo=[...mm].sort((a,b)=>a-b);
+ if(st==='boom'){ // bass on 1 and 3, short chord stabs on 2 and 4
+  const bass=lo[0],alt=lo.find(m=>m%12!==bass%12&&m>bass)??bass,upper=lo.slice(1).filter(m=>m>=lo[0]+5).slice(-4),stab=upper.length?upper:lo.slice(1);
+  pluck(freq(bass),0,beat*.9,.26);strum(stab,beat,.012,beat*.32,.13);pluck(freq(alt),beat*2,beat*.9,.22);strum(stab,beat*3,.012,beat*.32,.13);}
+ else if(st==='arp'){const seq=[...lo,...lo.slice(1,-1).reverse()];const n=8;for(let i=0;i<n;i++)pluck(freq(seq[i%seq.length]),i*beat/2,beat*1.6,.17);}
+ else{strum(mm,0,.028,beat*2.2,.15);strum([...mm].reverse().slice(0,4),beat*2,.02,beat*2,.09);}}
 $('#sg-play').onclick=()=>{
  if(playTimer){stopPlay();return;}
  const ch=curChords().filter(Boolean);if(!ch.length)return;ac();
@@ -2106,7 +2153,7 @@ $('#sg-play').onclick=()=>{
   if(playIdx>=ch.length){playIdx=0;}
   const c=ch[playIdx];const chip=$(`.pc[data-i="${playIdx}"]`);chip&&chip.classList.add('playing');
   const mm=songMidis(c);
-  strum(mm,0,.028,beat*2.2,.15);strum([...mm].reverse().slice(0,4),beat*2,.02,beat*2,.09);
+  sgPattern(mm,beat);
   const here=playIdx;sgfNow(c,ch[(playIdx+1)%ch.length]);playIdx++;playTimer=setTimeout(step,beat*4*1000);renderSongNeck(here,true);
   clearTimeout(sgSoftT);sgSoftT=setTimeout(()=>{if(playTimer)sgFlash(true);},beat*2*1000);};
  step();sgfSync();
